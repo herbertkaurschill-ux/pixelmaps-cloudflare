@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS events (
+  day TEXT NOT NULL,
+  grp TEXT NOT NULL DEFAULT 'a',
+  event TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, grp, event)
+);

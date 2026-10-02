@@ -1,0 +1,117 @@
+[
+  {"id":"v01-what-if-billion","kind":"claim","title":"Was passiert, wenn 1 Milliarde Menschen je einen Pixel kaufen?","eyebrow":"WELTREKORD-VERSUCH","claim":[["Was passiert, wenn","regular",44,"white"],["1 MILLIARDE MENSCHEN","bold",62,"gradient"],["je einen Pixel kaufen?","demi",50,"soft"]],"caption":"pixelmaps.org · 40.000 × 25.000 Kacheln · 1 € je Pixel","variant":"classic","duration":6},
+
+  {"id":"v02-one-euro-pixel","kind":"claim","title":"Dieser Pixel kostet nur 1 €","eyebrow":"DEIN PIXEL AB 1 €","claim":[["Dieser Pixel","regular",46,"white"],["kostet nur","bold",60,"gradient"],["1 €.","bold",120,"white"]],"caption":"pixelmaps.org · dein Punkt für immer","variant":"pop","duration":6,"focus":"51.2277,6.7735,2.6"},
+
+  {"id":"v03-buy-your-hometown","kind":"claim","title":"Kannst du deinen Wohnort kaufen?","eyebrow":"DA KAUFEN, WO DU LEBST","claim":[["Kannst du deinen","regular",46,"white"],["Wohnort kaufen?","bold",62,"gradient"],["Jetzt schon.","demi",52,"soft"]],"caption":"pixelmaps.org · Neuss & Osnabrück warten","variant":"paper","duration":6,"focus":"51.1981,6.6933,3.0"},
+
+  {"id":"v04-world-record","kind":"claim","title":"Unser Ziel: ein Weltrekord mit 1 Mrd. Pixel","eyebrow":"UNSER ZIEL","claim":[["Unser Ziel: ein","regular",44,"white"],["WELTREKORD","bold",72,"gradient"],["1 Milliarde Pixel auf einer Karte – mach mit","regular",38,"soft"]],"caption":"pixelmaps.org · zusammen schaffen wir den Rekord-Versuch","variant":"neon","duration":6},
+
+  {"id":"v05-what-happens-after","kind":"scenes","title":"Was passiert mit deinem Pixel nach dem Kauf?","duration":13.5,"music":"uplift",
+   "brand":{"title":"PIXELMAPS.ORG","sub":"KAUF → KARTE → ZERTIFIKAT → DEIN PLATZ"},
+   "scenes":[
+     [0.0,2.2,"text",["Was passiert","nach dem Kauf?"],54],
+     [2.2,5.0,"text",["Dein Pixel erscheint","sofort auf der Karte"],44],
+     [5.0,7.6,"text",["Du erhältst dein","persönliches Zertifikat"],44],
+     [7.6,10.2,"text",["Dein Platz gehört","dir für immer"],44],
+     [10.2,13.5,"brand",[],0]
+   ]},
+
+  {"id":"v06-my-pixel-here","kind":"claim","title":"Mein Pixel liegt genau hier","eyebrow":"DEIN PIXEL · DEINE GESCHICHTE","claim":[["Mein Pixel liegt","regular",46,"white"],["GENAU HIER.","bold",80,"gradient"]],"caption":"pixelmaps.org · hier: 51.069°N 6.632°O","variant":"neon","duration":6,"focus":"51.0692,6.6325,3.0"},
+
+  {"id":"v07-first-city-100","kind":"claim","title":"Welche Stadt hat zuerst 100 Pixel?","eyebrow":"WELTREKORD-VERSUCH","claim":[["Welche Stadt hat","regular",46,"white"],["zuerst 100 Pixel?","bold",64,"gradient"]],"caption":"pixelmaps.org · deine Stadt zählt","variant":"classic","duration":6},
+
+  {"id":"v08-germany-full","kind":"claim","title":"Gemeinsam füllen wir Deutschland Pixel für Pixel","eyebrow":"DEIN PIXEL ZÄHLT","claim":[["Gemeinsam füllen wir","regular",44,"white"],["Deutschland","bold",72,"gradient"],["Pixel für Pixel.","demi",52,"soft"]],"caption":"pixelmaps.org · dein Platz in Berlin","variant":"neon","duration":6,"focus":"52.52,13.405,2.2"},
+
+  {"id":"v09-your-street","kind":"claim","title":"Deine Straße. Dein Punkt.","eyebrow":"DA KAUFEN, WO DU LEBST","claim":[["Deine Straße.","bold",64,"gradient"],["Dein Punkt.","demi",56,"white"]],"caption":"pixelmaps.org · Köln wartet auf dich","variant":"pop","duration":6,"focus":"50.9375,6.9603,2.4"},
+
+  {"id":"v10-forever-gift","kind":"claim","title":"Das Geschenk, das bleibt: ein Pixel für immer","eyebrow":"EIN GESCHENK FÜR IMMER","claim":[["Das Geschenk,","regular",46,"white"],["das bleibt:","bold",62,"gradient"],["ein Pixel für immer.","demi",50,"soft"]],"caption":"pixelmaps.org · auch als Geschenk","variant":"paper","duration":6},
+
+  {"id":"v11-cheaper-coffee","kind":"claim","title":"Weniger als ein Kaffee: dein Stück Weltkarte","eyebrow":"DEIN PIXEL AB 1 €","claim":[["Weniger als ein Kaffee:","regular",46,"white"],["dein Stück Weltkarte","bold",62,"gradient"]],"caption":"pixelmaps.org · ab 1 € je Pixel","variant":"classic","duration":6},
+
+  {"id":"v12-how-big","kind":"claim","title":"Wie groß ist ein Pixel?","eyebrow":"WISSENSWERT","claim":[["Ein Pixel ist","regular",46,"white"],["deine Nachbarschaft","bold",64,"gradient"],["(ca. 1 km × 1 km).","regular",40,"soft"]],"caption":"pixelmaps.org · genau so groß ist dein Stück","variant":"pop","duration":6,"focus":"48.1351,11.582,2.0"},
+
+  {"id":"v13-leave-a-mark","kind":"claim","title":"Hinterlasse eine Spur auf der Weltkarte","eyebrow":"DEIN PIXEL ZÄHLT","claim":[["Hinterlasse eine Spur","regular",44,"white"],["auf der Weltkarte.","bold",64,"gradient"]],"caption":"pixelmaps.org · dein Platz in Berlin","variant":"classic","duration":6,"focus":"52.52,13.405,2.2"},
+
+  {"id":"v14-family-memory","kind":"claim","title":"Ein Ort für Erinnerungen und Familie","eyebrow":"PIXELMAPS.ORG","claim":[["Ein Ort für","regular",46,"white"],["deine Erinnerungen","bold",62,"gradient"],["und deine Familie.","demi",50,"soft"]],"caption":"pixelmaps.org · ein Platz für immer","variant":"paper","duration":6},
+
+  {"id":"v15-map-around-you","kind":"claim","title":"Dein Zuhause – jetzt auf der Weltkarte","eyebrow":"DA KAUFEN, WO DU LEBST","claim":[["Dein Zuhause:","regular",46,"white"],["jetzt auf der","bold",60,"gradient"],["Weltkarte.","demi",56,"soft"]],"caption":"pixelmaps.org · Neuss ist dabei","variant":"classic","duration":6,"focus":"51.1981,6.6933,2.8"},
+
+  {"id":"v16-connect-world","kind":"claim","title":"Ein Netzwerk, das die ganze Welt verbindet","eyebrow":"DEIN PIXEL · DEINE GESCHICHTE","claim":[["Ein Netzwerk, das","regular",44,"white"],["die ganze Welt","bold",64,"gradient"],["verbindet.","demi",56,"soft"]],"caption":"pixelmaps.org · Teil des Netzes werden","variant":"neon","duration":6},
+
+  {"id":"v17-from-anywhere","kind":"claim","title":"Egal wo du bist: ein Pixel von überall","eyebrow":"DEIN PIXEL AB 1 €","claim":[["Egal wo du bist –","regular",46,"white"],["dein Pixel von überall.","bold",60,"gradient"]],"caption":"pixelmaps.org · weltweit verfügbar","variant":"classic","duration":6},
+
+  {"id":"v18-forever-map","kind":"claim","title":"Für immer auf der Karte","eyebrow":"EIN GESCHENK FÜR IMMER","claim":[["Für immer","bold",72,"gradient"],["auf der Karte.","demi",54,"white"]],"caption":"pixelmaps.org · ab 1 €","variant":"pop","duration":6},
+
+  {"id":"v19-your-story","kind":"claim","title":"Jeder Punkt hat eine Geschichte","eyebrow":"PIXELMAPS.ORG","claim":[["Jeder Punkt hat","regular",46,"white"],["eine Geschichte.","bold",64,"gradient"],["Erzähl deine.","demi",52,"soft"]],"caption":"pixelmaps.org · dein Punkt, deine Story","variant":"paper","duration":6},
+
+  {"id":"v20-together-germany","kind":"claim","title":"Pixel für Pixel füllen wir die Karte","eyebrow":"DEIN PIXEL ZÄHLT","claim":[["Pixel für Pixel","bold",64,"gradient"],["füllen wir die Karte.","demi",50,"white"]],"caption":"pixelmaps.org · sei einer der Ersten","variant":"neon","duration":6,"focus":"51.2277,6.7735,2.6"},
+
+  {"id":"v21-certificate-real","kind":"claim","title":"Du bekommst dein Zertifikat als PDF","eyebrow":"KAUF → KARTE → ZERTIFIKAT","claim":[["Dein Pixel wird","regular",46,"white"],["ein echtes Zertifikat","bold",60,"gradient"],["für dich.","demi",54,"soft"]],"caption":"pixelmaps.org · Urkunde per E-Mail","variant":"classic","duration":6},
+
+  {"id":"v22-berlin-mosaic","kind":"claim","title":"Stell dir vor, ganz Berlin ist ein Pixel-Mosaik","eyebrow":"WELTREKORD-VERSUCH","claim":[["Stell dir vor,","regular",46,"white"],["ganz Berlin ist ein","bold",56,"gradient"],["Pixel-Mosaik.","demi",58,"soft"]],"caption":"pixelmaps.org · dein Mosaikteil","variant":"pop","duration":6,"focus":"52.52,13.405,2.4"},
+
+  {"id":"v23-osnabrueck-first","kind":"claim","title":"Osnabrück: die erste Stadt mit 100 Pixeln?","eyebrow":"DEINE STADT ZÄHLT","claim":[["Osnabrück:","bold",64,"gradient"],["die erste Stadt","regular",46,"white"],["mit 100 Pixeln?","demi",54,"soft"]],"caption":"pixelmaps.org · wer ist zuerst dabei?","variant":"paper","duration":6,"focus":"52.2799,8.0472,3.2"},
+
+  {"id":"v24-find-your-spot","kind":"claim","title":"Finde deinen Platz auf der Weltkarte","eyebrow":"DEIN PIXEL · DEINE GESCHICHTE","claim":[["Finde deinen Platz","regular",46,"white"],["auf der Weltkarte.","bold",60,"gradient"]],"caption":"pixelmaps.org · dein Punkt wartet","variant":"classic","duration":6},
+
+  {"id":"v25-small-big-together","kind":"claim","title":"Klein begonnen, weltweit gedacht","eyebrow":"PIXELMAPS.ORG","claim":[["Klein begonnen,","regular",46,"white"],["weltweit gedacht.","bold",62,"gradient"]],"caption":"pixelmaps.org · der Anfang ist gemacht","variant":"paper","duration":6},
+
+  {"id":"v26-every-corner","kind":"claim","title":"Jeder Winkel der Welt gehört auf die Karte","eyebrow":"DEIN PIXEL AB 1 €","claim":[["Jeder Winkel der Welt","regular",44,"white"],["gehört auf die Karte.","bold",60,"gradient"]],"caption":"pixelmaps.org · auch deiner","variant":"pop","duration":6},
+
+  {"id":"v27-in-10-years","kind":"claim","title":"In 10 Jahren ist dein Pixel noch da","eyebrow":"FÜR IMMER","claim":[["In 10 Jahren","regular",46,"white"],["ist dein Pixel noch da.","bold",60,"gradient"]],"caption":"pixelmaps.org · dauerhaft auf der Karte","variant":"classic","duration":6},
+
+  {"id":"v28-your-block","kind":"claim","title":"Zwei Pixel: dein eigener Block auf der Karte","eyebrow":"DEIN PIXEL · DEINE GESCHICHTE","claim":[["Zwei Pixel:","bold",64,"gradient"],["dein eigener Block","regular",46,"white"],["auf der Karte.","demi",52,"soft"]],"caption":"pixelmaps.org · 2 € für deinen Block","variant":"neon","duration":6,"focus":"53.5511,9.9937,2.6"},
+
+  {"id":"v29-real-pixel-you","kind":"claim","title":"Genau hier: ein echter Pixel auf der Weltkarte","eyebrow":"DEIN PIXEL ZÄHLT","claim":[["Genau hier:","regular",46,"white"],["dein echter Pixel","bold",60,"gradient"],["auf der Weltkarte.","demi",50,"soft"]],"caption":"pixelmaps.org · 51.069°N 6.632°O","variant":"pop","duration":6,"focus":"51.0692,6.6325,3.4"},
+
+  {"id":"v30-colorful-world","kind":"claim","title":"Die bunteste Weltkarte der Welt ist fast leer","eyebrow":"WELTREKORD-VERSUCH","claim":[["Die bunteste Weltkarte","regular",44,"white"],["der Welt","bold",64,"gradient"],["ist noch fast leer.","demi",52,"soft"]],"caption":"pixelmaps.org · dein Pixel fehlt noch","variant":"paper","duration":6},
+
+  {"id":"v31-city-tour","kind":"scenes","title":"Wo liegt dein Platz auf der Weltkarte?","duration":14.5,"music":"epic",
+   "brand":{"title":"PIXELMAPS.ORG","sub":"FINDEN. KAUFEN. FÜR IMMER."},
+   "cities":{"New York":[40.7128,-74.0060],"Berlin":[52.52,13.405],"Rio":[ -22.9068,-43.1729],"Tokyo":[35.6762,139.6503]},
+   "scenes":[
+     [0.0,2.2,"text",["Ein Netzwerk","aus leuchtenden Punkten"],46],
+     [2.2,4.2,"city","New York",52],
+     [4.2,6.2,"city","Berlin",52],
+     [6.2,8.2,"city","Rio",52],
+     [8.2,10.2,"city","Tokyo",52],
+     [10.2,12.4,"text",["Wo liegt","dein Pixel?"],58],
+     [12.4,14.5,"brand",[],0]
+   ]},
+
+  {"id":"v01-en-what-if-billion","kind":"claim","title":"What if 1 billion people each buy one pixel?","eyebrow":"WORLD RECORD ATTEMPT","claim":[["What if","regular",44,"white"],["1 BILLION PEOPLE","bold",58,"gradient"],["each buy one pixel?","demi",50,"soft"]],"caption":"pixelmaps.org · 40,000 × 25,000 tiles · €1 per pixel","variant":"classic","duration":6},
+
+  {"id":"v02-en-one-euro-pixel","kind":"claim","title":"This pixel costs just €1","eyebrow":"YOUR PIXEL FROM €1","claim":[["This pixel","regular",46,"white"],["costs just","bold",60,"gradient"],["€1.","bold",120,"white"]],"caption":"pixelmaps.org · your spot forever","variant":"pop","duration":6,"focus":"51.2277,6.7735,2.6"},
+
+  {"id":"v03-en-buy-your-hometown","kind":"claim","title":"Can you buy your hometown?","eyebrow":"BUY WHERE YOU LIVE","claim":[["Can you buy","regular",46,"white"],["your hometown?","bold",62,"gradient"],["Now you can.","demi",52,"soft"]],"caption":"pixelmaps.org · Neuss & Osnabrück are waiting","variant":"paper","duration":6,"focus":"51.1981,6.6933,3.0"},
+
+  {"id":"v04-en-world-record","kind":"claim","title":"Our goal: a 1-billion-pixel world record","eyebrow":"OUR GOAL","claim":[["Our goal: a","regular",44,"white"],["WORLD RECORD","bold",68,"gradient"],["1 billion pixels on one map – join us","regular",36,"soft"]],"caption":"pixelmaps.org · together we attempt the record","variant":"neon","duration":6},
+
+  {"id":"v05-en-what-happens-after","kind":"scenes","title":"What happens to your pixel after the purchase?","duration":13.5,"music":"uplift",
+   "brand":{"title":"PIXELMAPS.ORG","sub":"BUY → MAP → CERTIFICATE → YOUR SPOT"},
+   "scenes":[
+     [0.0,2.2,"text",["What happens","after the purchase?"],52],
+     [2.2,5.0,"text",["Your pixel appears","on the map instantly"],42],
+     [5.0,7.6,"text",["You receive your","personal certificate"],42],
+     [7.6,10.2,"text",["Your place is","yours forever"],42],
+     [10.2,13.5,"brand",[],0]
+   ]},
+
+  {"id":"v06-en-my-pixel-here","kind":"claim","title":"My pixel is right here","eyebrow":"YOUR PIXEL · YOUR STORY","claim":[["My pixel is","regular",46,"white"],["RIGHT HERE.","bold",80,"gradient"]],"caption":"pixelmaps.org · 51.069°N 6.632°E","variant":"neon","duration":6,"focus":"51.0692,6.6325,3.0"},
+
+  {"id":"v07-en-first-city-100","kind":"claim","title":"Which city reaches 100 pixels first?","eyebrow":"WORLD RECORD ATTEMPT","claim":[["Which city reaches","regular",46,"white"],["100 pixels first?","bold",64,"gradient"]],"caption":"pixelmaps.org · make your city count","variant":"classic","duration":6},
+
+  {"id":"explainer-de","kind":"scenes","title":"Was ist PixelMaps? (Erklärvideo, emotional)","duration":15.5,"music":"calm",
+   "brand":{"title":"PIXELMAPS.ORG","sub":"EIN PLATZ FÜR IMMER"},
+   "cities":{"Berlin":[52.52,13.405],"Mumbai":[19.076,72.8777],"Neuss":[51.1981,6.6933]},
+   "scenes":[
+     [0.0,2.2,"text",["Jeder Mensch","hat einen Platz."],56],
+     [2.2,4.6,"text",["PixelMaps ist eine Weltkarte","aus 1 Milliarde Pixeln."],44],
+     [4.6,6.4,"city",["Berlin","eine Stadt, die zählt."],48],
+     [6.4,8.2,"city",["Mumbai","ein Ort, der verbindet."],48],
+     [8.2,10.6,"text",["Wähle deinen Platz","auf der Weltkarte."],46],
+     [10.6,13.0,"text",["Sichere deinen Pixel","mit einem digitalen Zertifikat."],44],
+     [13.0,15.5,"brand",[],0]
+   ]}
+]

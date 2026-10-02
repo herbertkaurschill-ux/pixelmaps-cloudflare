@@ -1,0 +1,30 @@
+name = "pixelmaps"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+
+routes = [
+  { pattern = "pixelmaps.org", custom_domain = true }
+]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "pixelmaps"
+database_id = "37056eb9-7704-4054-a97a-4b12fb39450a"
+
+[vars]
+SITE_URL = "https://pixelmaps.org"
+BASE_PRICE_CENTS = "100"
+
+# Optional: taeglich aktualisierte Wechselkurse, z.B.:
+# FX_RATES = '{"usd":1.09,"gbp":0.86}'
+
+# Set these as secrets with:
+# wrangler secret put STRIPE_SECRET_KEY
+# wrangler secret put STRIPE_WEBHOOK_SECRET
+# Optional:
+# wrangler secret put RESEND_API_KEY

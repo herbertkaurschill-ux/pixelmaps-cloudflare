@@ -1,0 +1,18 @@
+{
+  "name": "pixelmaps-cloudflare",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:init": "wrangler d1 execute pixelmaps --file=migrations/0001_init.sql --local",
+    "db:remote": "wrangler d1 execute pixelmaps --file=migrations/0001_init.sql --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

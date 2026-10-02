@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AGB · PixelMaps</title>
+  <style>
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%}body{margin:0;background:#080d16;color:#e2e8f0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.6}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid #1f2937;background:#0a0f18}
+    .brand{font-weight:800;letter-spacing:.05em;color:#6ee7b7}
+    a{color:#34d399}
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%}body{-webkit-tap-highlight-color:transparent}main{max-width:760px;margin:auto;padding:32px 24px max(80px,calc(80px + env(safe-area-inset-bottom)))}header{padding-top:env(safe-area-inset-top)}
+    h1{font-size:26px;margin:0 0 8px}
+    h2{font-size:18px;margin:28px 0 8px;color:#a7f3d0}
+    p,li{font-size:14px;color:#cbd5e1}
+    .box{background:#0f1521;border:1px solid #1f2937;border-radius:10px;padding:14px 16px;margin:10px 0}
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">PIXELMAPS</span>
+    <a href="/">← Zur Karte</a>
+  </header>
+  <main>
+    <h1>Allgemeine Geschäftsbedingungen (AGB)</h1>
+    <p>Stand: 18. September 2026</p>
+    <p class="box">Hinweis: Platzhalter in eckigen Klammern vor dem Start durch die Angaben des Betreibers ersetzen.</p>
+
+    <h2>§ 1 Geltungsbereich</h2>
+    <p>Diese AGB gelten für alle Bestellungen und Verträge über „geografische Pixel“ auf der Internetseite pixelmaps.org („PixelMaps“). Vertragspartner ist Peter Schmidt, Immermannstraße 20, 40210 Düsseldorf. Verbraucher- und Unternehmerbestellungen werden gleichermaßen erfasst.</p>
+
+    <h2>§ 2 Vertragsgegenstand</h2>
+    <p>Vertragsgegenstand ist der dauerhafte Eintrag eines geografischen Punkts („Pixel“) in einem digitalen Weltkarten-Raster mit 1 Milliarde Zellen sowie die Ausstellung einer digitalen Urkunde. Der Erwerb vermittelt ausschließlich das Recht, den gewählten Punkt auf der Website PixelMaps zu kennzeichnen. Er begründet <strong>keine</strong> Grundstücks-, Marken-, Namens- oder sonstigen Rechte und ist nicht übertragbar oder veräußerlich. Ein „Weltrekord“-Bezug ist nur nicht-kommerzielle Ausweisung eines Projektziels; eine Anerkennung durch eine offizielle Rekordorganisation besteht nicht und wird nicht garantiert.</p>
+
+    <h2>§ 3 Zustandekommen des Vertrags</h2>
+    <p>Die Darstellung der Karte stellt kein verbindliches Angebot dar. Vertragsschluss erfolgt mit erfolgreicher Zahlung über den Zahlungsdienstleister Stripe. Es gilt das Recht des Verbraucherstaats für zwingende Schutzbestimmungen; im Übrigen deutschem Recht.</p>
+
+    <h2>§ 4 Preise und Zahlung</h2>
+    <p>Der Preis beträgt grundsätzlich den Gegenwert von 1,00 EUR und wird in Abhängigkeit vom Standort des Käufers in einer unterstützten Landeswährung zum jeweils aktuellen, von uns festgelegten Umrechnungskurs angezeigt und belastet. Maßgebend ist der im Bestellvorgang ausgewiesene Betrag. Zahlungen erfolgen ausschließlich über Stripe; auf die dortigen Nutzungs- und Datenschutzbestimmungen wird verwiesen.</p>
+
+    <h2>§ 5 Leistungsumfang / Lieferung</h2>
+    <p>Nach erfolgreicher Zahlung wird der Pixel in unserem System registriert, auf der Karte dargestellt und die Urkunde (PDF) an die angegebene E-Mail-Adresse versandt. Ein Anspruch auf eine bestimmte Darstellungstechnik, Schriftgröße oder Farbwiedergabe besteht nicht.</p>
+
+    <h2>§ 6 Widerrufsrecht</h2>
+    <p>Verbrauchern steht ein gesetzliches Widerrufsrecht von 14 Tagen zu. Wird der Vertrag auf ausdrücklichen Wunsch des Verbrauchers unmittelbar erfüllt und hat der Verbraucher ausdrücklich zugestimmt, dass das Widerrufsrecht mit vollständiger Vertragserfüllung erlischt und dies und den Verlust des Widerrufsrechts bestätigt, erlischt das Widerrufsrecht mit Beginn der Vertragserfüllung. Durch Abschluss des Bestellvorgangs erklärt der Käufer diese Zustimmung und Bestätigung ausdrücklich.</p>
+
+    <h2>§ 7 Öffentliche Darstellung und Inhalte</h2>
+    <p>Anzeigename, Webseite und Nachricht werden nur mit ausdrücklicher Einwilligung (Art. 6 Abs. 1 lit. a DSGVO) öffentlich angezeigt. Es ist untersagt, rechtswidrige, beleidigende, diskriminierende, jugendgefährdende, kennzeichen- oder urheberrechtsverletzende Inhalte zu verwenden. Verstößt ein Inhalt gegen diese Regeln oder geltendes Recht, ist PixelMaps berechtigt, den Inhalt zu entfernen, zu beanstanden und/oder den Vertrag zu beenden. Ein Anspruch auf Wiedereinspielung oder Erstattung besteht in diesem Fall nicht.</p>
+
+    <h2>§ 8 Haftung</h2>
+    <p>Die Haftung von PixelMaps ist auf Vorsatz und grobe Fahrlässigkeit sowie auf die Verletzung wesentlicher Vertragspflichten (Kardinalpflichten) beschränkt, bei denen auf den Ersatz des vorhersehbaren Schadens abgestellt wird. Die Haftung für leichte Fahrlässigkeit ist ausgeschlossen, soweit keine Kardinalpflicht, keine Gesundheit/Schäden an Leben oder Körper sowie keine Ansprüche nach dem Produkthaftungsgesetz betroffen sind. Es wird keine Verfügbarkeit der Website, Garantie eines bestimmten Verkaufsabsatzes oder Anerkennung eines Weltrekords zugesichert.</p>
+
+    <h2>§ 9 Nutzung der Karte und Drittanbieter</h2>
+    <p>Die Kartendaten stammen von OpenStreetMap und stehen unter der ODbL-Lizenz. Durch die Nutzung der Website akzeptieren die Nutzer die Nutzungsbedingungen der Kartendienste.</p>
+
+    <h2>§ 10 Datenschutz</h2>
+    <p>Es gilt die <a href="/datenschutz.html">Datenschutzerklärung</a>.</p>
+
+    <h2>§ 11 Streitbeilegung und Schlussbestimmungen</h2>
+    <p>Die EU-OS-Plattform findest du unter <a href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener">https://ec.europa.eu/consumers/odr</a>. Wir nehmen nicht an einer Verbraucher-Schlichtungsstelle teil. Sollte eine Bestimmung unwirksam sein, bleibt der Vertrag im Übrigen wirksam; an die Stelle tritt die gesetzlich zulässige Bestimmung.</p>
+  </main>
+</body>
+</html>

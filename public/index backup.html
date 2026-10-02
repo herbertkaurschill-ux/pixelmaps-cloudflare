@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PixelMaps — The Global Pixel Project</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; }
+    #map { background: #050911; }
+    .leaflet-container { background: #050911 !important; font-family: Inter, system-ui, sans-serif; }
+    .leaflet-tile { filter: saturate(.72) brightness(.48) contrast(1.18); }
+    .leaflet-control-attribution {
+      background: rgba(2, 8, 18, .72) !important;
+      color: #64748b !important;
+      border-radius: 8px 0 0 0;
+    }
+    .leaflet-control-attribution a { color: #94a3b8 !important; }
+
+    .sold-pixel {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: #20f6a2;
+      border: 2px solid rgba(190,255,231,.95);
+      box-shadow:
+        0 0 7px rgba(32,246,162,.95),
+        0 0 18px rgba(32,246,162,.7),
+        0 0 32px rgba(32,246,162,.35);
+    }
+    .selected-pixel {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: #9affdc;
+      border: 2px solid #ffffff;
+      box-shadow:
+        0 0 8px rgba(154,255,220,1),
+        0 0 22px rgba(32,246,162,.95),
+        0 0 44px rgba(32,246,162,.5);
+    }
+    .pixel-popup {
+      background: rgba(5,12,24,.94);
+      color: #e2e8f0;
+      border: 1px solid rgba(52,211,153,.35);
+      border-radius: 12px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.45);
+    }
+    .pixel-popup .leaflet-popup-content-wrapper,
+    .pixel-popup .leaflet-popup-tip {
+      background: rgba(5,12,24,.94);
+      color: #e2e8f0;
+    }
+    .language-option {
+      display:block; width:100%; text-align:left; padding:8px 10px;
+      border-radius:8px; color:#cbd5e1; font-size:12px;
+    }
+    .language-option:hover { background:rgba(16,185,129,.12); color:#fff; }
+  </style>
+</head>
+
+<body class="bg-[#080d16] text-slate-100 font-sans h-screen overflow-hidden flex flex-col antialiased">
+
+  <header class="w-full h-16 border-b border-slate-800/60 bg-slate-950/85 backdrop-blur-md px-6 flex items-center justify-between z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center"
+           style="box-shadow:0 0 18px rgba(16,185,129,.35)">
+        <i data-lucide="grid" class="w-5 h-5 text-emerald-400"></i>
+      </div>
+      <span class="font-bold tracking-wider text-lg bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+        PIXELMAPS
+      </span>
+    </div>
+
+    <div class="flex items-center gap-3 text-sm">
+      <div class="relative pointer-events-auto">
+        <button id="language-button" type="button"
+          class="bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full text-xs text-slate-200 hover:border-emerald-500/50 transition flex items-center gap-2"
+          aria-label="Language">
+          <span id="language-flag">🌐</span>
+          <span id="language-name">Deutsch</span>
+          <span>▾</span>
+        </button>
+        <div id="language-menu" class="hidden absolute right-0 mt-2 w-44 bg-slate-950 border border-slate-800 rounded-xl p-1 shadow-2xl z-50">
+          <button data-lang="de" class="language-option">🇩🇪 Deutsch</button>
+          <button data-lang="en" class="language-option">🇬🇧 English</button>
+          <button data-lang="fr" class="language-option">🇫🇷 Français</button>
+          <button data-lang="es" class="language-option">🇪🇸 Español</button>
+          <button data-lang="it" class="language-option">🇮🇹 Italiano</button>
+          <button data-lang="nl" class="language-option">🇳🇱 Nederlands</button>
+          <button data-lang="pl" class="language-option">🇵🇱 Polski</button>
+          <button data-lang="pt" class="language-option">🇵🇹 Português</button>
+        </div>
+      </div>
+      <div class="hidden sm:flex items-center gap-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-400 text-xs">Gesamt:</span>
+        <span class="font-mono text-emerald-400 font-semibold">1.000.000.000</span>
+      </div>
+      <div class="bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full">
+        <span id="sold-count" class="font-mono text-white font-semibold">0</span>
+        <span class="text-slate-500 text-xs ml-1">gesichert</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="relative flex-1 w-full h-full overflow-hidden">
+    <div id="map" class="absolute inset-0 z-10"></div>
+
+    <aside class="absolute left-6 top-6 bottom-16 w-full max-w-sm bg-slate-900/82 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-2xl z-20 pointer-events-none">
+      <div class="space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase">
+          <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+          <span data-i18n="badge">One World · One Billion Pixels</span>
+        </div>
+
+        <h1 class="text-4xl font-extrabold text-white leading-[.98]">
+          <span data-i18n="hero">One World.<br><span class="text-emerald-300">One Billion</span><br>Pixels.<br>Your Pixel.</span>
+        </h1>
+
+        <p class="text-sm text-slate-400 max-w-xs">
+          <span data-i18n="intro">Klicke auf einen freien Punkt auf der Weltkarte und sichere deinen geografischen Pixel für 1 €.</span>
+        </p>
+
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <button onclick="focusForPurchase()"
+            class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-4 py-3 rounded-xl transition"
+            style="box-shadow:0 0 22px rgba(52,211,153,.35)">
+            <span data-i18n="cta">SICHERE MEINEN PIXEL · 1 €</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-950/55 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
+        <div class="text-slate-500" data-i18n="selectedLabel">Ausgewählter Pixel:</div>
+        <div id="selected-info" class="font-mono text-emerald-400 font-bold" data-i18n="mapHint">Klicke auf die Karte...</div>
+        <div id="selected-place" class="text-slate-500"></div>
+      </div>
+    </aside>
+
+    <div class="absolute right-6 bottom-16 z-20 bg-slate-950/75 backdrop-blur-md border border-slate-800 rounded-xl px-4 py-3 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="sold-pixel"></span>
+        <span class="text-slate-300" data-i18n="soldPixel">Gesicherter Pixel</span>
+      </div>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="selected-pixel"></span>
+        <span class="text-slate-300" data-i18n="selectedPixel">Ausgewählter Pixel</span>
+      </div>
+    </div>
+
+    <footer class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-slate-800 px-5 py-2.5 rounded-xl text-xs text-slate-400 z-20 min-w-[320px] text-center">
+      <span id="coords-display" class="font-mono text-slate-200" data-i18n="footerHint">Klicke auf einen Punkt der Weltkarte</span>
+    </footer>
+  </main>
+
+  <div id="checkout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-lg font-bold text-white" data-i18n="modalTitle">Deinen Pixel sichern</h3>
+          <div id="modal-place" class="text-xs text-emerald-400 mt-1"></div>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <form id="checkout-form" onsubmit="submitCheckout(event)" class="space-y-3">
+        <input type="hidden" id="pixel_id_input">
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="chosenPlace">Dein gewählter Ort</label>
+          <input type="text" id="pixel_id_display" disabled
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm font-semibold text-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="nameLabel">Dein Name / Anzeigename *</label>
+          <input type="text" id="display_name" required
+            placeholder="z.B. Max Mustermann"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="emailLabel">E-Mail Adresse (für Zertifikat) *</label>
+          <input type="email" id="email" required
+            placeholder="max@beispiel.de"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="websiteLabel">Webseite (optional)</label>
+          <input type="url" id="website"
+            placeholder="https://deine-website.de"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="messageLabel">Message auf deinem Pixel (optional)</label>
+          <textarea id="message" maxlength="30" rows="2"
+            placeholder="Deine Nachricht ..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 outline-none resize-none"></textarea>
+          <div class="flex justify-between text-[10px] text-slate-600 mt-1">
+            <span data-i18n="messageHelp">Wird beim Pixel angezeigt.</span>
+            <span id="message-count">0/30</span>
+          </div>
+        </div>
+
+        <div id="checkout-error" class="hidden text-sm text-red-300 bg-red-950/40 border border-red-900/50 rounded-lg p-3"></div>
+
+        <button type="submit" id="submit-btn"
+          class="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-3 rounded-xl transition text-sm">
+          <span data-i18n="stripeButton">Weiter zu Stripe · 1,00 €</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div id="sold-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold" data-i18n="soldTitle">Pixel bereits gesichert</h3>
+        <button onclick="closeSoldModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+      </div>
+      <div class="mt-4 space-y-2 text-sm">
+        <div id="sold-place" class="text-emerald-400 font-semibold"></div>
+        <div id="sold-owner" class="text-slate-300"></div>
+        <div id="sold-id" class="font-mono text-xs text-slate-500"></div>
+        <div id="sold-message" class="hidden mt-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-300 text-sm whitespace-pre-wrap"></div>
+      </div>
+      <button onclick="closeSoldModal()" class="mt-5 w-full border border-slate-700 hover:border-emerald-500/50 py-2.5 rounded-xl text-sm">
+        <span data-i18n="otherPlace">Andere Stelle auswählen</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const COLS = 40000;
+    const ROWS = 25000;
+    const TOTAL = 1000000000;
+
+    const map = L.map('map', {
+      zoomControl: false,
+      worldCopyJump: false,
+      maxBounds: [[-90, -180], [90, 180]],
+      maxBoundsViscosity: 1,
+      minZoom: 2
+    }).setView([25, 10], 2.7);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+      maxNativeZoom: 19,
+      noWrap: true,
+      updateWhenIdle: true,
+      keepBuffer: 2
+    }).addTo(map);
+
+    let currentMarker = null;
+    let soldLayer = L.layerGroup().addTo(map);
+    let loadedSoldIds = new Set();
+    let lastBoundsKey = '';
+    let loadingSold = false;
+
+    function geoToId(lat, lon) {
+      const clat = Math.max(-90, Math.min(90, Number(lat)));
+      let x = ((Number(lon) + 180) / 360);
+      x = ((x % 1) + 1) % 1;
+      const col = Math.min(COLS - 1, Math.floor(x * COLS));
+      const row = Math.min(ROWS - 1, Math.max(0, Math.floor((90 - clat) / 180 * ROWS)));
+      return row * COLS + col;
+    }
+
+    function makeIcon(className) {
+      return L.divIcon({
+        className: '',
+        html: '<div class="' + className + '"></div>',
+        iconSize: className === 'selected-pixel' ? [20,20] : [16,16],
+        iconAnchor: className === 'selected-pixel' ? [10,10] : [8,8],
+        popupAnchor: [0,-8]
+      });
+    }
+
+    async function loadSoldPixels() {
+      if (loadingSold) return;
+      const b = map.getBounds();
+      const minLat = Math.max(-90, b.getSouth());
+      const maxLat = Math.min(90, b.getNorth());
+      const minLon = Math.max(-180, b.getWest());
+      const maxLon = Math.min(180, b.getEast());
+
+      const key = [minLat.toFixed(3), maxLat.toFixed(3), minLon.toFixed(3), maxLon.toFixed(3), map.getZoom()].join('|');
+      if (key === lastBoundsKey) return;
+      lastBoundsKey = key;
+      loadingSold = true;
+
+      try {
+        const url = '/api/pixels?minLat=' + encodeURIComponent(minLat)
+          + '&maxLat=' + encodeURIComponent(maxLat)
+          + '&minLon=' + encodeURIComponent(minLon)
+          + '&maxLon=' + encodeURIComponent(maxLon)
+          + '&limit=5000';
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Pixel API ' + res.status);
+        const data = await res.json();
+        const rows = Array.isArray(data.pixels) ? data.pixels : [];
+
+        rows.forEach(p => {
+          const id = Number(p.pixel_id);
+          if (!Number.isInteger(id) || loadedSoldIds.has(id)) return;
+          loadedSoldIds.add(id);
+
+          const marker = L.marker([Number(p.lat), Number(p.lon)], {
+            icon: makeIcon('sold-pixel'),
+            zIndexOffset: 500
+          });
+
+          const title = p.display_name ? escapeHtml(p.display_name) : 'Gesicherter Pixel';
+          const website = p.website ? '<div class="text-xs mt-1">' + escapeHtml(p.website) + '</div>' : '';
+          const message = p.message
+            ? '<div style="font-size:12px;color:#cbd5e1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(51,65,85,.7);white-space:pre-wrap">' + escapeHtml(p.message) + '</div>'
+            : '';
+
+          marker.bindPopup(
+            '<div class="pixel-popup px-1">' +
+              '<div style="font-weight:700;color:#6ee7b7">' + title + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;margin-top:3px">Pixel #' + id + '</div>' +
+              website +
+              message +
+            '</div>',
+            { className: 'pixel-popup' }
+          );
+
+          // A sold pixel must never fall through to the map click handler.
+          marker.on('click', async function(ev) {
+            L.DomEvent.stopPropagation(ev);
+
+            document.getElementById('checkout-modal').classList.add('hidden');
+            document.getElementById('checkout-modal').style.display = 'none';
+
+            document.getElementById('sold-place').textContent = 'Lade Ort ...';
+            document.getElementById('sold-owner').textContent = title;
+            document.getElementById('sold-id').textContent = 'Pixel #' + id;
+            document.getElementById('sold-modal').classList.remove('hidden');
+            document.getElementById('sold-modal').style.display = 'flex';
+
+            try {
+              const check = await fetch('/api/pixel?id=' + encodeURIComponent(id));
+              const info = await check.json();
+              const place = info.place_name || 'Geografischer Pixel';
+              document.getElementById('sold-place').textContent = place;
+              document.getElementById('sold-owner').textContent =
+                info.pixel && info.pixel.display_name
+                  ? 'Gesichert von: ' + info.pixel.display_name
+                  : 'Dieser Pixel wurde bereits gesichert.';
+            } catch (_) {
+              document.getElementById('sold-place').textContent = 'Geografischer Pixel';
+            }
+          });
+
+          marker.addTo(soldLayer);
+        });
+
+        const stats = await fetch('/api/stats').then(r => r.ok ? r.json() : null).catch(() => null);
+        if (stats) document.getElementById('sold-count').textContent = Number(stats.sold || 0).toLocaleString('de-DE');
+      } catch (err) {
+        console.error('Sold pixels could not be loaded:', err);
+      } finally {
+        loadingSold = false;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      }[ch]));
+    }
+
+    map.on('moveend', loadSoldPixels);
+
+    map.on('click', async function(e) {
+      const lat = e.latlng.lat;
+      const lon = e.latlng.lng;
+      const pixelId = geoToId(lat, lon);
+
+      document.getElementById('coords-display').textContent =
+        'Lat: ' + lat.toFixed(4) + '°, Lon: ' + lon.toFixed(4) + '°';
+      document.getElementById('selected-info').textContent = (T[window.PM_LANG || 'en']?.check || 'Checking pixel #') + pixelId + ' ...';
+      document.getElementById('selected-place').textContent = '';
+
+      if (currentMarker) map.removeLayer(currentMarker);
+      currentMarker = L.marker([lat, lon], {
+        icon: makeIcon('selected-pixel'),
+        zIndexOffset: 1000
+      }).addTo(map);
+
+      try {
+        // IMPORTANT: the worker expects /api/pixel?id=...
+        const res = await fetch('/api/pixel?id=' + encodeURIComponent(pixelId));
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || ('Pixel API ' + res.status));
+
+        const sold = data.pixel;
+        const place = data.place_name || '';
+        document.getElementById('selected-place').textContent =
+          place ? (T[window.PM_LANG || 'en']?.place || 'Place: ') + place : (T[window.PM_LANG || 'en']?.placeUnknown || 'Place not found');
+
+        if (sold) {
+          document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.saved || 'secured');
+          document.getElementById('sold-place').textContent = place || 'Gesicherter Ort';
+          document.getElementById('sold-owner').textContent = sold.display_name
+            ? 'Gesichert von: ' + sold.display_name
+            : 'Dieser Pixel wurde bereits gesichert.';
+          document.getElementById('sold-id').textContent = 'Pixel #' + pixelId;
+
+          const soldMessageEl = document.getElementById('sold-message');
+          if (sold.message) {
+            soldMessageEl.textContent = '„' + sold.message + '“';
+            soldMessageEl.classList.remove('hidden');
+          } else {
+            soldMessageEl.textContent = '';
+            soldMessageEl.classList.add('hidden');
+          }
+
+          document.getElementById('sold-modal').classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.available || 'available');
+        openModal(pixelId, lat, lon, place);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('selected-info').textContent = 'Pixel #' + pixelId;
+        document.getElementById('checkout-error').textContent =
+          'Der Pixel konnte gerade nicht geprüft werden. Bitte erneut versuchen.';
+        document.getElementById('checkout-error').classList.remove('hidden');
+      }
+    });
+
+    function openModal(pixelId, lat, lon, place) {
+      const modal = document.getElementById('checkout-modal');
+      const form = document.getElementById('checkout-form');
+      const btn = document.getElementById('submit-btn');
+
+      document.getElementById('pixel_id_input').value = pixelId;
+      document.getElementById('pixel_id_display').value =
+        place || (T[window.PM_LANG || 'en']?.loading || 'Finding place ...');
+      document.getElementById('modal-place').textContent =
+        place ? (T[window.PM_LANG || 'en']?.selectedPlace || 'Place selected') : (T[window.PM_LANG || 'en']?.loading || 'Finding place ...');
+
+      document.getElementById('checkout-error').classList.add('hidden');
+      btn.disabled = false;
+      btn.textContent = T[window.PM_LANG || 'en']?.stripeButton || 'Continue to Stripe · €1.00';
+
+      // Explicit display setting makes the dialog open reliably even if
+      // Tailwind's utility CSS is delayed or cached in the browser.
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+
+      setTimeout(() => {
+        const name = document.getElementById('display_name');
+        if (name) name.focus();
+      }, 50);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('checkout-modal');
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+      modal.style.visibility = 'hidden';
+      modal.style.opacity = '0';
+    }
+
+    function closeSoldModal() {
+      const modal = document.getElementById('sold-modal');
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+
+    function focusForPurchase() {
+      map.setView([51.1657, 10.4515], 6, { animate: true });
+    }
+
+    async function submitCheckout(e) {
+      e.preventDefault();
+
+      const btn = document.getElementById('submit-btn');
+      const errorEl = document.getElementById('checkout-error');
+      errorEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = (window.PM_LANG === 'de' ? 'Lade Stripe Checkout ...' : 'Loading Stripe Checkout ...');
+
+      const payload = {
+        pixel_id: Number(document.getElementById('pixel_id_input').value),
+        display_name: document.getElementById('display_name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        website: document.getElementById('website').value.trim(),
+        message: document.getElementById('message').value.trim().slice(0, 30)
+      };
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+
+        throw new Error(data.error || 'Checkout konnte nicht gestartet werden.');
+      } catch (err) {
+        errorEl.textContent = err.message || 'Checkout konnte nicht gestartet werden.';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = T[window.PM_LANG || 'en']?.stripeButton || 'Continue to Stripe · €1.00';
+      }
+    }
+
+    const messageInput = document.getElementById('message');
+    const messageCount = document.getElementById('message-count');
+    if (messageInput && messageCount) {
+      messageInput.addEventListener('input', () => {
+        if (messageInput.value.length > 30) messageInput.value = messageInput.value.slice(0, 30);
+        messageCount.textContent = messageInput.value.length + '/30';
+      });
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeSoldModal();
+      }
+    });
+
+    // --- Automatic language detection ---
+    const LANGS = {
+      de: { name:'Deutsch', flag:'🇩🇪' },
+      en: { name:'English', flag:'🇬🇧' },
+      fr: { name:'Français', flag:'🇫🇷' },
+      es: { name:'Español', flag:'🇪🇸' },
+      it: { name:'Italiano', flag:'🇮🇹' },
+      nl: { name:'Nederlands', flag:'🇳🇱' },
+      pl: { name:'Polski', flag:'🇵🇱' },
+      pt: { name:'Português', flag:'🇵🇹' }
+    };
+
+    const T = {
+      de: {
+        badge:'One World · One Billion Pixels',
+        hero:'One World.<br><span class="text-emerald-300">One Billion</span><br>Pixels.<br>Your Pixel.',
+        intro:'Klicke auf einen freien Punkt auf der Weltkarte und sichere deinen geografischen Pixel für 1 €.',
+        cta:'SICHERE MEINEN PIXEL · 1 €',
+        selectedLabel:'Ausgewählter Pixel:',
+        mapHint:'Klicke auf die Karte...',
+        soldPixel:'Gesicherter Pixel',
+        selectedPixel:'Ausgewählter Pixel',
+        footerHint:'Klicke auf einen Punkt der Weltkarte',
+        modalTitle:'Deinen Pixel sichern',
+        chosenPlace:'Dein gewählter Ort',
+        nameLabel:'Dein Name / Anzeigename *',
+        emailLabel:'E-Mail Adresse (für Zertifikat) *',
+        websiteLabel:'Webseite (optional)',
+        messageLabel:'Message auf deinem Pixel (optional)',
+        messageHelp:'Wird beim Pixel angezeigt.',
+        stripeButton:'Weiter zu Stripe · 1,00 €',
+        soldTitle:'Pixel bereits gesichert',
+        otherPlace:'Andere Stelle auswählen',
+        saved:'gesichert', available:'verfügbar',
+        check:'Prüfe Pixel #',
+        place:'Ort: ', placeUnknown:'Ort nicht ermittelt',
+        loading:'Ort wird ermittelt ...',
+        selectedPlace:'Ort ausgewählt'
+      },
+      en: {
+        badge:'One World · One Billion Pixels',
+        hero:'One World.<br><span class="text-emerald-300">One Billion</span><br>Pixels.<br>Your Pixel.',
+        intro:'Click a free point on the world map and secure your geographic pixel for €1.',
+        cta:'SECURE MY PIXEL · €1',
+        selectedLabel:'Selected pixel:',
+        mapHint:'Click the map...',
+        soldPixel:'Secured pixel',
+        selectedPixel:'Selected pixel',
+        footerHint:'Click a point on the world map',
+        modalTitle:'Secure your pixel',
+        chosenPlace:'Your chosen place',
+        nameLabel:'Your name / display name *',
+        emailLabel:'Email address (for certificate) *',
+        websiteLabel:'Website (optional)',
+        messageLabel:'Message on your pixel (optional)',
+        messageHelp:'Shown with your pixel.',
+        stripeButton:'Continue to Stripe · €1.00',
+        soldTitle:'Pixel already secured',
+        otherPlace:'Choose another place',
+        saved:'secured', available:'available',
+        check:'Checking pixel #',
+        place:'Place: ', placeUnknown:'Place not found',
+        loading:'Finding place ...',
+        selectedPlace:'Place selected'
+      },
+      fr: {
+        badge:'Un monde · Un milliard de pixels',
+        hero:'Un monde.<br><span class="text-emerald-300">Un milliard</span><br>de pixels.<br>Votre pixel.',
+        intro:'Cliquez sur un point libre de la carte et sécurisez votre pixel géographique pour 1 €.',
+        cta:'SÉCURISER MON PIXEL · 1 €',
+        selectedLabel:'Pixel sélectionné :',
+        mapHint:'Cliquez sur la carte...',
+        soldPixel:'Pixel sécurisé', selectedPixel:'Pixel sélectionné',
+        footerHint:'Cliquez sur un point de la carte',
+        modalTitle:'Sécuriser votre pixel', chosenPlace:'Lieu choisi',
+        nameLabel:'Votre nom / nom affiché *', emailLabel:'Adresse e-mail (pour le certificat) *',
+        websiteLabel:'Site web (facultatif)', messageLabel:'Message sur votre pixel (facultatif)',
+        messageHelp:'Affiché avec votre pixel.', stripeButton:'Continuer vers Stripe · 1,00 €',
+        soldTitle:'Pixel déjà sécurisé', otherPlace:'Choisir un autre lieu',
+        saved:'sécurisé', available:'disponible', check:'Vérification du pixel #',
+        place:'Lieu : ', placeUnknown:'Lieu introuvable', loading:'Recherche du lieu ...', selectedPlace:'Lieu sélectionné'
+      },
+      es: {
+        badge:'Un mundo · Mil millones de píxeles',
+        hero:'Un mundo.<br><span class="text-emerald-300">Mil millones</span><br>de píxeles.<br>Tu píxel.',
+        intro:'Haz clic en un punto libre del mapa y asegura tu píxel geográfico por 1 €.',
+        cta:'ASEGURA MI PÍXEL · 1 €',
+        selectedLabel:'Píxel seleccionado:', mapHint:'Haz clic en el mapa...',
+        soldPixel:'Píxel asegurado', selectedPixel:'Píxel seleccionado',
+        footerHint:'Haz clic en un punto del mapa', modalTitle:'Asegura tu píxel',
+        chosenPlace:'Lugar elegido', nameLabel:'Tu nombre / nombre mostrado *',
+        emailLabel:'Correo electrónico (para el certificado) *', websiteLabel:'Sitio web (opcional)',
+        messageLabel:'Mensaje en tu píxel (opcional)', messageHelp:'Se muestra con tu píxel.',
+        stripeButton:'Continuar a Stripe · 1,00 €', soldTitle:'Píxel ya asegurado',
+        otherPlace:'Elegir otro lugar', saved:'asegurado', available:'disponible',
+        check:'Comprobando píxel #', place:'Lugar: ', placeUnknown:'Lugar no encontrado',
+        loading:'Buscando lugar ...', selectedPlace:'Lugar seleccionado'
+      },
+      it: {
+        badge:'Un mondo · Un miliardo di pixel',
+        hero:'Un mondo.<br><span class="text-emerald-300">Un miliardo</span><br>di pixel.<br>Il tuo pixel.',
+        intro:'Clicca su un punto libero della mappa e assicurati il tuo pixel geografico per 1 €.',
+        cta:'ASSICURA IL MIO PIXEL · 1 €',
+        selectedLabel:'Pixel selezionato:', mapHint:'Clicca sulla mappa...',
+        soldPixel:'Pixel assicurato', selectedPixel:'Pixel selezionato',
+        footerHint:'Clicca su un punto della mappa', modalTitle:'Assicura il tuo pixel',
+        chosenPlace:'Luogo scelto', nameLabel:'Nome / nome visualizzato *',
+        emailLabel:'Indirizzo e-mail (per il certificato) *', websiteLabel:'Sito web (facoltativo)',
+        messageLabel:'Messaggio sul tuo pixel (facoltativo)', messageHelp:'Mostrato con il tuo pixel.',
+        stripeButton:'Continua con Stripe · 1,00 €', soldTitle:'Pixel già assicurato',
+        otherPlace:'Scegli un altro luogo', saved:'assicurato', available:'disponibile',
+        check:'Controllo pixel #', place:'Luogo: ', placeUnknown:'Luogo non trovato',
+        loading:'Ricerca del luogo ...', selectedPlace:'Luogo selezionato'
+      },
+      nl: {
+        badge:'Eén wereld · Eén miljard pixels',
+        hero:'Eén wereld.<br><span class="text-emerald-300">Eén miljard</span><br>pixels.<br>Jouw pixel.',
+        intro:'Klik op een vrij punt op de wereldkaart en beveilig je geografische pixel voor €1.',
+        cta:'MIJN PIXEL VEILIGSTELLEN · €1',
+        selectedLabel:'Geselecteerde pixel:', mapHint:'Klik op de kaart...',
+        soldPixel:'Beveiligde pixel', selectedPixel:'Geselecteerde pixel',
+        footerHint:'Klik op een punt op de wereldkaart', modalTitle:'Beveilig je pixel',
+        chosenPlace:'Gekozen plaats', nameLabel:'Je naam / weergavenaam *',
+        emailLabel:'E-mailadres (voor certificaat) *', websiteLabel:'Website (optioneel)',
+        messageLabel:'Bericht op je pixel (optioneel)', messageHelp:'Wordt bij je pixel weergegeven.',
+        stripeButton:'Doorgaan naar Stripe · €1,00', soldTitle:'Pixel al beveiligd',
+        otherPlace:'Andere plaats kiezen', saved:'beveiligd', available:'beschikbaar',
+        check:'Pixel controleren #', place:'Plaats: ', placeUnknown:'Plaats niet gevonden',
+        loading:'Plaats zoeken ...', selectedPlace:'Plaats geselecteerd'
+      },
+      pl: {
+        badge:'Jeden świat · Miliard pikseli',
+        hero:'Jeden świat.<br><span class="text-emerald-300">Miliard</span><br>pikseli.<br>Twój piksel.',
+        intro:'Kliknij wolny punkt na mapie świata i zabezpiecz swój piksel geograficzny za 1 €.',
+        cta:'ZABEZPIECZ MÓJ PIKSEL · 1 €',
+        selectedLabel:'Wybrany piksel:', mapHint:'Kliknij mapę...',
+        soldPixel:'Zabezpieczony piksel', selectedPixel:'Wybrany piksel',
+        footerHint:'Kliknij punkt na mapie świata', modalTitle:'Zabezpiecz swój piksel',
+        chosenPlace:'Wybrane miejsce', nameLabel:'Imię i nazwisko / nazwa wyświetlana *',
+        emailLabel:'Adres e-mail (do certyfikatu) *', websiteLabel:'Strona internetowa (opcjonalnie)',
+        messageLabel:'Wiadomość na pikselu (opcjonalnie)', messageHelp:'Będzie wyświetlana przy pikselu.',
+        stripeButton:'Przejdź do Stripe · 1,00 €', soldTitle:'Piksel już zabezpieczony',
+        otherPlace:'Wybierz inne miejsce', saved:'zabezpieczony', available:'dostępny',
+        check:'Sprawdzanie piksela #', place:'Miejsce: ', placeUnknown:'Nie znaleziono miejsca',
+        loading:'Ustalanie miejsca ...', selectedPlace:'Wybrane miejsce'
+      },
+      pt: {
+        badge:'Um mundo · Um bilhão de pixels',
+        hero:'Um mundo.<br><span class="text-emerald-300">Um bilhão</span><br>de pixels.<br>Seu pixel.',
+        intro:'Clique em um ponto livre no mapa e garanta seu pixel geográfico por 1 €.',
+        cta:'GARANTIR MEU PIXEL · 1 €',
+        selectedLabel:'Pixel selecionado:', mapHint:'Clique no mapa...',
+        soldPixel:'Pixel garantido', selectedPixel:'Pixel selecionado',
+        footerHint:'Clique em um ponto do mapa', modalTitle:'Garanta seu pixel',
+        chosenPlace:'Local escolhido', nameLabel:'Seu nome / nome exibido *',
+        emailLabel:'E-mail (para o certificado) *', websiteLabel:'Site (opcional)',
+        messageLabel:'Mensagem no seu pixel (opcional)', messageHelp:'Será exibida com seu pixel.',
+        stripeButton:'Continuar para Stripe · 1,00 €', soldTitle:'Pixel já garantido',
+        otherPlace:'Escolher outro local', saved:'garantido', available:'disponível',
+        check:'Verificando pixel #', place:'Local: ', placeUnknown:'Local não encontrado',
+        loading:'Localizando ...', selectedPlace:'Local selecionado'
+      }
+    };
+
+    function applyLanguage(lang) {
+      lang = LANGS[lang] ? lang : 'en';
+      const t = T[lang];
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key] !== undefined) el.innerHTML = t[key];
+      });
+      document.getElementById('language-name').textContent = LANGS[lang].name;
+      document.getElementById('language-flag').textContent = LANGS[lang].flag;
+      localStorage.setItem('pixelmaps-language', lang);
+      window.PM_LANG = lang;
+    }
+
+    async function detectCountryLanguage() {
+      const saved = localStorage.getItem('pixelmaps-language');
+      if (saved && LANGS[saved]) return saved;
+
+      // Cloudflare's edge trace includes the visitor country (loc=XX).
+      try {
+        const r = await fetch('/cdn-cgi/trace', { cache:'no-store' });
+        const text = await r.text();
+        const m = text.match(/^loc=([A-Z]{2})$/m);
+        const cc = m ? m[1] : '';
+        const countryMap = {
+          DE:'de', AT:'de', CH:'de', LI:'de',
+          US:'en', GB:'en', CA:'en', AU:'en', NZ:'en', IE:'en',
+          FR:'fr', BE:'fr', LU:'fr',
+          ES:'es', MX:'es', AR:'es', CL:'es', CO:'es',
+          IT:'it',
+          NL:'nl',
+          PL:'pl',
+          PT:'pt', BR:'pt'
+        };
+        if (countryMap[cc]) return countryMap[cc];
+      } catch (_) {}
+
+      const browser = (navigator.language || 'en').slice(0,2).toLowerCase();
+      return LANGS[browser] ? browser : 'en';
+    }
+
+    const languageButton = document.getElementById('language-button');
+    const languageMenu = document.getElementById('language-menu');
+    languageButton.addEventListener('click', () => languageMenu.classList.toggle('hidden'));
+    document.querySelectorAll('.language-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyLanguage(btn.dataset.lang);
+        languageMenu.classList.add('hidden');
+      });
+    });
+    document.addEventListener('click', e => {
+      if (!languageButton.contains(e.target) && !languageMenu.contains(e.target)) languageMenu.classList.add('hidden');
+    });
+
+    detectCountryLanguage().then(applyLanguage);
+
+    loadSoldPixels();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PixelMaps — The Global Pixel Project</title>
+  <meta name="description" content="Klicke auf die Weltkarte und sichere deinen eigenen geografischen Pixel für 1 € – die Weltkarte aus einer Milliarde Pixeln.">
+  <link rel="canonical" href="https://pixelmaps.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PixelMaps">
+  <meta property="og:locale" content="de_DE">
+  <meta property="og:title" content="PixelMaps — One World, One Billion Pixels">
+  <meta property="og:description" content="Klicke auf die Weltkarte und sichere deinen eigenen geografischen Pixel für 1 € – die Weltkarte aus einer Milliarde Pixeln.">
+  <meta property="og:url" content="https://pixelmaps.org/">
+  <meta property="og:image" content="https://pixelmaps.org/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="PixelMaps — One World, One Billion Pixels">
+  <meta name="twitter:description" content="Klicke auf die Weltkarte und sichere deinen eigenen geografischen Pixel für 1 € – die Weltkarte aus einer Milliarde Pixeln.">
+  <meta name="twitter:image" content="https://pixelmaps.org/og-image.png">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebSite","name":"PixelMaps","alternateName":"One World, One Billion Pixels","url":"https://pixelmaps.org"}
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; }
+    #map { background: #050911; }
+    .leaflet-container { background: #050911 !important; font-family: Inter, system-ui, sans-serif; }
+    .leaflet-tile { filter: saturate(.72) brightness(.48) contrast(1.18); }
+    .leaflet-control-attribution {
+      background: rgba(2, 8, 18, .72) !important;
+      color: #64748b !important;
+      border-radius: 8px 0 0 0;
+      font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: #94a3b8 !important; }
+
+    .sold-pixel {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      background: hsl(var(--px-h, 156) 92% 55%);
+      border: 2px solid hsl(var(--px-h, 156) 92% 82%);
+      box-shadow:
+        0 0 7px hsl(var(--px-h, 156) 92% 55% / .95),
+        0 0 18px hsl(var(--px-h, 156) 92% 55% / .7),
+        0 0 32px hsl(var(--px-h, 156) 92% 55% / .35);
+    }
+    @keyframes ticker-pop {
+      from { opacity: .3; transform: translateY(5px); }
+      to { opacity: 1; transform: none; }
+    }
+    .ticker-pop { animation: ticker-pop .5s ease; }
+    .selected-pixel {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: #9affdc;
+      border: 2px solid #ffffff;
+      box-shadow:
+        0 0 8px rgba(154,255,220,1),
+        0 0 22px rgba(32,246,162,.95),
+        0 0 44px rgba(32,246,162,.5);
+    }
+    .pixel-popup {
+      background: rgba(5,12,24,.94);
+      color: #e2e8f0;
+      border: 1px solid rgba(52,211,153,.35);
+      border-radius: 12px;
+      box-shadow: 0 15px 40px rgba(0,0,0,.45);
+    }
+    .pixel-popup .leaflet-popup-content-wrapper,
+    .pixel-popup .leaflet-popup-tip {
+      background: rgba(5,12,24,.94);
+      color: #e2e8f0;
+    }
+    .language-option {
+      display:block; width:100%; text-align:left; padding:8px 10px;
+      border-radius:8px; color:#cbd5e1; font-size:12px;
+    }
+    .language-option:hover { background:rgba(16,185,129,.12); color:#fff; }
+    #return-banner {
+      position:absolute; left:50%; transform:translateX(-50%);
+      bottom:calc(4.5rem + env(safe-area-inset-bottom)); z-index:40; max-width:92vw;
+      background:rgba(5,12,24,.95); border:1px solid rgba(52,211,153,.4);
+      color:#e2e8f0; border-radius:14px; padding:12px 18px;
+      font-size:13px; box-shadow:0 18px 50px rgba(0,0,0,.5);
+      display:flex; align-items:center; gap:10px;
+    }
+    #return-banner .spinner {
+      width:14px; height:14px; border-radius:50%; flex:none;
+      border:2px solid rgba(52,211,153,.3); border-top-color:#34d399;
+      animation:spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    #return-banner a { color:#6ee7b7; font-weight:700; }
+
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation; }
+    header { padding-top: env(safe-area-inset-top); }
+    footer#coords-footer { bottom: calc(0.5rem + env(safe-area-inset-bottom)); }
+
+    #side-panel { transition: opacity .2s ease; }
+    #panel-mini-title { display: none; }
+    @media (max-width: 767px) {
+      #side-panel {
+        position: relative;
+        top: auto; left: auto; right: auto; bottom: auto;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: .65rem;
+        border: 0;
+        border-bottom: 1px solid rgba(30,41,59,.85);
+        border-radius: 0;
+        background: rgba(8,13,22,.98);
+      }
+      #panel-hero { display: none; }
+      #panel-mini-title { display: block; }
+      #side-panel:not(.minimized) #panel-hero { display: block; }
+      #side-panel:not(.minimized) #panel-mini-title { display: none; }
+      #side-panel.minimized > div:last-child { display: none; }
+    }
+    #panel-toggle {
+      position:absolute; top:8px; right:8px; z-index:10; pointer-events:auto;
+      display:flex; align-items:center; justify-content:center;
+      width:30px; height:30px; border-radius:9999px;
+      background:rgba(2,6,23,.85); border:1px solid #1f2937; color:#94a3b8;
+    }
+    #panel-toggle:hover { color:#fff; border-color:rgba(52,211,153,.5); }
+
+    @media (max-width: 767px) {
+      .leaflet-bottom.leaflet-right { bottom: 60px; }
+      #checkout-modal input, #checkout-modal textarea { font-size: 16px; }
+      #side-panel:not(.minimized) #panel-hero {
+        max-height: calc(100dvh - 23rem);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-[#080d16] text-slate-100 font-sans h-screen overflow-hidden flex flex-col antialiased">
+
+  <!-- HEADER -->
+  <header class="w-full border-b border-slate-800/60 bg-slate-950/85 backdrop-blur-md px-3 md:px-6 py-2 md:py-0 md:h-16 gap-2 md:gap-3 flex flex-wrap items-center justify-between z-30 shrink-0">
+
+    <div class="order-0 flex items-center gap-2 md:gap-3">
+      <div class="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center"
+           style="box-shadow:0 0 18px rgba(16,185,129,.35)">
+        <i data-lucide="grid" class="w-4 h-4 md:w-5 md:h-5 text-emerald-400"></i>
+      </div>
+      <span class="font-bold tracking-wider text-base md:text-lg bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+        PIXELMAPS
+      </span>
+    </div>
+
+    <form id="search-form" class="order-2 md:order-1 relative pointer-events-auto basis-full md:basis-auto w-full md:w-72" onsubmit="return doSearch(event)">
+      <div class="flex gap-1.5">
+        <input id="address-search" type="text" autocomplete="off" enterkeyhint="search"
+          placeholder="Straße &amp; Hausnummer suchen …"
+          class="flex-1 min-w-0 bg-slate-900/80 border border-slate-800 focus:border-emerald-500/60 focus:outline-none rounded-full px-3 py-1.5 md:py-2 text-xs md:text-sm text-slate-200 placeholder:text-slate-500">
+        <button type="submit"
+          class="shrink-0 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-3 md:px-4 py-1.5 md:py-2 rounded-full transition text-xs"
+          data-i18n="searchBtn">Suchen</button>
+      </div>
+      <div id="search-results" class="hidden absolute left-0 right-0 z-50 mt-1.5 max-h-56 overflow-y-auto rounded-xl bg-slate-900/95 border border-slate-700 shadow-2xl divide-y divide-slate-800"></div>
+    </form>
+
+    <div class="order-1 md:order-2 flex items-center gap-2 md:gap-3 text-xs md:text-sm">
+      <div class="relative pointer-events-auto">
+        <button id="language-button" type="button"
+          class="bg-slate-900/80 border border-slate-800 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs text-slate-200 hover:border-emerald-500/50 transition flex items-center gap-1.5"
+          aria-label="Language">
+          <span id="language-flag">🌐</span>
+          <span id="language-name" class="hidden sm:inline">Deutsch</span>
+          <span class="text-[10px]">▾</span>
+        </button>
+        <div id="language-menu" class="hidden absolute right-0 mt-2 w-40 md:w-44 bg-slate-950 border border-slate-800 rounded-xl p-1 shadow-2xl z-50">
+          <button data-lang="de" class="language-option">🇩🇪 Deutsch</button>
+          <button data-lang="en" class="language-option">🇬🇧 English</button>
+          <button data-lang="fr" class="language-option">🇫🇷 Français</button>
+          <button data-lang="es" class="language-option">🇪🇸 Español</button>
+          <button data-lang="it" class="language-option">🇮🇹 Italiano</button>
+          <button data-lang="nl" class="language-option">🇳🇱 Nederlands</button>
+          <button data-lang="pl" class="language-option">🇵🇱 Polski</button>
+          <button data-lang="pt" class="language-option">🇵🇹 Português</button>
+          <button data-lang="zh" class="language-option">🇨🇳 中文</button>
+          <button data-lang="hi" class="language-option">🇮🇳 हिन्दी</button>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-full">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-slate-400 text-xs">Gesamt:</span>
+        <span class="font-mono text-emerald-400 font-semibold">1.000.000.000</span>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs">
+        <span id="sold-count" class="font-mono text-white font-semibold">0</span>
+        <span class="text-slate-500 text-[10px] md:text-xs ml-0.5">gesichert</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAP & OVERLAYS -->
+  <main class="relative flex-1 w-full h-full overflow-hidden">
+    <div id="map" class="absolute inset-0 z-10"></div>
+
+    <!-- RETURN BANNER (Stripe-Rueckkehr) -->
+    <div id="return-banner" class="hidden"></div>
+
+    <!-- RESPONSIVE FLOATING PANEL -->
+    <aside id="side-panel" class="absolute left-2.5 top-2.5 w-60 max-w-[58vw] md:left-6 md:top-6 md:bottom-16 md:w-80 md:max-w-sm bg-slate-900/85 backdrop-blur-xl border border-slate-800/80 rounded-2xl p-3 md:p-6 flex flex-col justify-between shadow-2xl z-20 pointer-events-none transition-all">
+      <div class="flex items-center justify-between gap-3">
+        <span data-i18n="badge" id="panel-mini-title" class="md:hidden text-[13px] font-extrabold text-slate-100 truncate leading-snug min-w-0">
+          One World · One Billion Pixels
+        </span>
+        <button id="panel-toggle" type="button" class="md:hidden shrink-0" aria-label="Panel ein-/ausblenden">
+          <i data-lucide="chevron-up" id="panel-toggle-icon" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div id="panel-hero" class="space-y-2 md:space-y-3">
+        <div class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold uppercase">
+          <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+          <span data-i18n="badge">One World · One Billion Pixels</span>
+        </div>
+
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-[11px] md:text-xs font-bold">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span data-i18n="priceTag">Dein Pixel auf der Weltkarte für nur 1 €</span>
+        </div>
+
+        <h1 class="text-lg sm:text-2xl md:text-3xl font-extrabold text-white leading-tight">
+          <span data-i18n="hero">One World.<br><span class="text-emerald-300">One Billion</span> Pixels.<br>Your Pixel.</span>
+        </h1>
+
+        <p class="text-xs md:text-sm text-slate-400 max-w-xs">
+          <span data-i18n="intro">Wähle einen Ort auf der Weltkarte, sichere deinen Pixel für 1 € – dein Punkt bleibt für immer dort, mit deinem Namen &amp; deiner Urkunde.</span>
+        </p>
+
+        <div class="hidden sm:block space-y-1 md:space-y-1.5 text-[11px] md:text-xs">
+          <div class="text-slate-500 font-semibold uppercase tracking-wide text-[10px]" data-i18n="stepsTitle">So funktioniert's</div>
+          <div class="flex items-center gap-2 text-slate-300"><span class="text-emerald-400 font-bold">1</span><span data-i18n="step1">Ort auf der Karte wählen</span></div>
+          <div class="flex items-center gap-2 text-slate-300"><span class="text-emerald-400 font-bold">2</span><span data-i18n="step2">Name &amp; E-Mail eintragen</span></div>
+          <div class="flex items-center gap-2 text-slate-300"><span class="text-emerald-400 font-bold">3</span><span data-i18n="step3">1 € zahlen – Pixel + Urkunde erhalten</span></div>
+        </div>
+
+        <div class="sm:hidden flex flex-wrap gap-1.5 text-[10px] text-slate-300">
+          <span class="px-2 py-1 rounded-md bg-slate-950/70 border border-slate-800" data-i18n="step1s">1 · Karte wählen</span>
+          <span class="px-2 py-1 rounded-md bg-slate-950/70 border border-slate-800" data-i18n="step2s">2 · Name &amp; E-Mail</span>
+          <span class="px-2 py-1 rounded-md bg-slate-950/70 border border-emerald-500/40 text-emerald-300" data-i18n="step3s">3 · 1 € → Pixel + Urkunde</span>
+        </div>
+
+        <div class="hidden md:flex items-center gap-2 rounded-lg bg-slate-950/60 border border-slate-800 px-2.5 py-2 text-[11px] text-slate-400">
+          <i data-lucide="award" class="w-3.5 h-3.5 text-emerald-400 flex-none"></i>
+          <span data-i18n="whatYouGet">Dein Name &amp; Emoji erscheinen auf der Karte – plus deine digitale Weltrekord-Urkunde (PDF) per E-Mail.</span>
+        </div>
+
+        <div class="flex items-start gap-1.5 text-[10px] md:text-[11px] text-slate-500">
+          <span>⚑</span>
+          <span data-i18n="notice">Gemeinsamer Weltrekordversuch – die Anerkennung wird angestrebt, ist aber noch nicht offiziell bestätigt.</span>
+        </div>
+      </div>
+
+      <div class="space-y-2 mt-2 md:mt-0 pt-2 md:pt-0">
+        <div class="flex items-center gap-2 pointer-events-auto">
+          <button onclick="focusForPurchase()"
+            class="w-full md:w-auto bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-extrabold px-3 py-2 md:px-4 md:py-3 rounded-xl transition text-xs md:text-sm min-h-[44px]"
+            style="box-shadow:0 0 22px rgba(52,211,153,.35)">
+            <span id="cta-btn-text" data-i18n="cta">WÄHLE DEINEN PIXEL · 1 €</span>
+          </button>
+        </div>
+
+        <div class="bg-slate-950/60 p-2.5 md:p-3 rounded-xl border border-slate-800 text-[11px] md:text-xs space-y-0.5">
+          <div class="text-slate-500" data-i18n="selectedLabel">Ausgewählter Pixel:</div>
+          <div id="selected-info" class="font-mono text-emerald-400 font-bold truncate" data-i18n="mapHint">Klicke auf die Karte...</div>
+          <div id="selected-place" class="text-slate-400 truncate"></div>
+        </div>
+
+        <div class="bg-slate-950/60 p-2.5 md:p-3 rounded-xl border border-slate-800 text-[11px] md:text-xs space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500" data-i18n="milestoneLabel">Nächster Meilenstein</span>
+            <span id="milestone-count" class="font-mono text-emerald-400 font-bold">0/100</span>
+          </div>
+          <div class="h-1.5 rounded-full bg-slate-800 overflow-hidden">
+            <div id="milestone-bar" class="h-full rounded-full bg-emerald-400 transition-all duration-700" style="width:0%"></div>
+          </div>
+          <div class="text-slate-500 text-[10px]"><span id="milestone-remaining"></span> <span data-i18n="remainingLabel">noch frei</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- LEGEND (Hidden on mobile for maximum map view) -->
+    <div class="hidden sm:block absolute right-6 bottom-16 z-20 bg-slate-950/75 backdrop-blur-md border border-slate-800 rounded-xl px-4 py-3 text-xs">
+      <div class="flex items-center gap-2">
+        <span class="sold-pixel"></span>
+        <span class="text-slate-300" data-i18n="soldPixel">Gesicherter Pixel</span>
+      </div>
+      <div class="flex items-center gap-2 mt-2">
+        <span class="selected-pixel"></span>
+        <span class="text-slate-300" data-i18n="selectedPixel">Ausgewählter Pixel</span>
+      </div>
+    </div>
+
+    <div id="recent-ticker" class="hidden absolute left-3 bottom-20 md:left-6 md:bottom-24 z-30">
+      <button type="button" onclick="openTickerClick()"
+        class="flex items-center gap-2 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200 shadow-xl hover:border-emerald-500/50 transition max-w-[72vw] md:max-w-xs">
+        <span class="text-base">🎉</span>
+        <span id="recent-ticker-text" class="truncate"></span>
+      </button>
+    </div>
+
+    <!-- FOOTER COORDS -->
+    <footer id="coords-footer" class="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-x-3 gap-y-1 flex-wrap bg-slate-900/90 border border-slate-800 px-3 py-1.5 md:px-5 md:py-2.5 rounded-xl text-[11px] md:text-xs text-slate-400 z-20 max-w-[94vw] text-center">
+      <span id="coords-display" class="font-mono text-slate-200" data-i18n="footerHint">Klicke auf einen Punkt der Weltkarte</span>
+      <a href="/ueber" rel="noopener" class="hover:text-emerald-400 transition py-0.5" data-i18n="footerAbout">Über & FAQ</a>
+      <a href="/impressum" rel="noopener" class="hover:text-emerald-400 transition py-0.5" data-i18n="footerImprint">Impressum</a>
+      <a href="/datenschutz" rel="noopener" class="hover:text-emerald-400 transition py-0.5" data-i18n="footerPrivacy">Datenschutz</a>
+      <a href="/agb" rel="noopener" class="hover:text-emerald-400 transition py-0.5" data-i18n="footerTerms">AGB</a>
+    </footer>
+  </main>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkout-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 md:p-6 max-w-md w-full space-y-3 md:space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base md:text-lg font-bold text-white" data-i18n="modalTitle">Deinen Pixel sichern</h3>
+          <div id="modal-place" class="text-xs text-emerald-400 mt-0.5"></div>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white text-2xl leading-none">&times;</button>
+      </div>
+
+      <form id="checkout-form" onsubmit="submitCheckout(event)" class="space-y-3">
+        <input type="hidden" id="pixel_id_input">
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="chosenPlace">Dein gewählter Ort</label>
+          <input type="text" id="pixel_id_display" disabled
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs md:text-sm font-semibold text-emerald-400">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="nameLabel">Dein Name / Anzeigename *</label>
+          <input type="text" id="display_name" required
+            placeholder="z.B. Max Mustermann"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs md:text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="emailLabel">E-Mail Adresse (für Zertifikat) *</label>
+          <input type="email" id="email" required
+            placeholder="max@beispiel.de"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs md:text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="websiteLabel">Webseite (optional)</label>
+          <input type="url" id="website"
+            placeholder="https://deine-website.de"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs md:text-sm text-white focus:border-emerald-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1" data-i18n="messageLabel">Message auf deinem Pixel (optional)</label>
+          <textarea id="message" maxlength="30" rows="2"
+            placeholder="Deine Nachricht ..."
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs md:text-sm text-white focus:border-emerald-500 outline-none resize-none"></textarea>
+          <div class="flex justify-between text-[10px] text-slate-600 mt-1">
+            <span data-i18n="messageHelp">Wird beim Pixel angezeigt.</span>
+            <span id="message-count">0/30</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-slate-400 mb-1.5" data-i18n="emojiLabel">Pixel-Emoji (optional)</label>
+          <div id="emoji-picker" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+        <label class="flex items-start gap-2 text-[11px] leading-snug text-slate-400 cursor-pointer">
+          <input type="checkbox" id="consent" required class="mt-0.5 accent-emerald-500 w-4 h-4 flex-none">
+          <span data-i18n="consentLabel">I agree that my display name, website and message may be publicly shown on the map, and that my data is processed according to the <a href="/en/privacy" target="_blank" rel="noopener" class="text-emerald-400 underline">privacy policy</a>. I accept the <a href="/en/terms" target="_blank" rel="noopener" class="text-emerald-400 underline">terms</a> and I am at least 16 years old.</span>
+        </label>
+
+        <div id="checkout-error" class="hidden text-xs md:text-sm text-red-300 bg-red-950/40 border border-red-900/50 rounded-lg p-2.5"></div>
+
+        <button type="submit" id="submit-btn"
+          class="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2.5 md:py-3 rounded-xl transition text-xs md:text-sm min-h-[44px]">
+          <span data-i18n="stripeButton">Weiter zu Stripe · 1,00 €</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SOLD MODAL -->
+  <div id="sold-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
+    <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-5 md:p-6 max-w-sm w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base md:text-lg font-bold text-white" data-i18n="soldTitle">Pixel bereits gesichert</h3>
+        <button onclick="closeSoldModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
+      </div>
+      <div class="mt-3 md:mt-4 space-y-2 text-xs md:text-sm">
+        <div id="sold-place" class="text-emerald-400 font-semibold"></div>
+        <div id="sold-owner" class="text-slate-300"></div>
+        <div id="sold-id" class="font-mono text-xs text-slate-500"></div>
+        <div id="sold-message" class="hidden mt-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-300 text-xs md:text-sm whitespace-pre-wrap"></div>
+      </div>
+      <button id="sold-share-btn" onclick="sharePixel()"
+        class="mt-3 w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2 md:py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
+        🔗 Pixel-Link kopieren
+      </button>
+      <div id="share-copied" class="hidden text-center text-emerald-400 text-xs mt-2">🔗 Link kopiert!</div>
+      <button onclick="closeSoldModal()" class="mt-4 md:mt-5 w-full border border-slate-700 hover:border-emerald-500/50 py-2 md:py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
+        <span data-i18n="otherPlace">Andere Stelle auswählen</span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    const COLS = 40000;
+    const ROWS = 25000;
+    const TOTAL = 1000000000;
+
+    const map = L.map('map', {
+      zoomControl: false,
+      worldCopyJump: false,
+      maxBounds: [[-90, -180], [90, 180]],
+      maxBoundsViscosity: 1,
+      minZoom: 2
+    }).setView([25, 10], 2.3);
+
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 19,
+      maxNativeZoom: 19,
+      noWrap: true,
+      updateWhenIdle: true,
+      keepBuffer: 2
+    }).addTo(map);
+
+    let currentMarker = null;
+    let soldLayer = L.layerGroup().addTo(map);
+    let loadedSoldIds = new Set();
+    let lastBoundsKey = '';
+    let loadingSold = false;
+
+    function geoToId(lat, lon) {
+      const clat = Math.max(-90, Math.min(90, Number(lat)));
+      let x = ((Number(lon) + 180) / 360);
+      x = ((x % 1) + 1) % 1;
+      const col = Math.min(COLS - 1, Math.floor(x * COLS));
+      const row = Math.min(ROWS - 1, Math.max(0, Math.floor((90 - clat) / 180 * ROWS)));
+      return row * COLS + col;
+    }
+
+    const PIXEL_HUES = [15, 45, 75, 105, 135, 165, 195, 225, 255, 285, 315, 345];
+
+    function pixelHue(id) {
+      return PIXEL_HUES[(Math.abs(id) * 5) % 12];
+    }
+
+    function makeIcon(className, id) {
+      let style = '';
+      if (className === 'sold-pixel' && Number.isInteger(id)) {
+        style = ' style="--px-h:' + pixelHue(id) + '"';
+      }
+      return L.divIcon({
+        className: '',
+        html: '<div class="' + className + '"' + style + '></div>',
+        iconSize: className === 'selected-pixel' ? [20,20] : [16,16],
+        iconAnchor: className === 'selected-pixel' ? [10,10] : [8,8],
+        popupAnchor: [0,-8]
+      });
+    }
+
+    async function loadSoldPixels() {
+      if (loadingSold) return;
+      const b = map.getBounds();
+      const minLat = Math.max(-90, b.getSouth());
+      const maxLat = Math.min(90, b.getNorth());
+      const minLon = Math.max(-180, b.getWest());
+      const maxLon = Math.min(180, b.getEast());
+
+      const key = [minLat.toFixed(3), maxLat.toFixed(3), minLon.toFixed(3), maxLon.toFixed(3), map.getZoom()].join('|');
+      if (key === lastBoundsKey) return;
+      lastBoundsKey = key;
+      loadingSold = true;
+
+      try {
+        const limit = window.innerWidth < 768 ? 1200 : 5000;
+        const url = '/api/pixels?minLat=' + encodeURIComponent(minLat)
+          + '&maxLat=' + encodeURIComponent(maxLat)
+          + '&minLon=' + encodeURIComponent(minLon)
+          + '&maxLon=' + encodeURIComponent(maxLon)
+          + '&limit=' + limit;
+
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Pixel API ' + res.status);
+        const data = await res.json();
+        const rows = Array.isArray(data.pixels) ? data.pixels : [];
+
+        rows.forEach(p => {
+          const id = Number(p.pixel_id);
+          if (!Number.isInteger(id) || loadedSoldIds.has(id)) return;
+          loadedSoldIds.add(id);
+
+          const marker = L.marker([Number(p.lat), Number(p.lon)], {
+            icon: makeIcon('sold-pixel', id),
+            zIndexOffset: 500
+          });
+
+          const title = p.display_name ? escapeHtml(p.display_name) : 'Gesicherter Pixel';
+          const website = p.website ? '<div class="text-xs mt-1">' + escapeHtml(p.website) + '</div>' : '';
+          const message = p.message
+            ? '<div style="font-size:12px;color:#cbd5e1;margin-top:8px;padding-top:8px;border-top:1px solid rgba(51,65,85,.7);white-space:pre-wrap">' + escapeHtml(p.message) + '</div>'
+            : '';
+
+          marker.bindPopup(
+            '<div class="pixel-popup px-1">' +
+              '<div style="font-weight:700;color:#6ee7b7">' + (p.emoji ? p.emoji + '&nbsp;' : '') + title + '</div>' +
+              '<div style="font-size:11px;color:#94a3b8;margin-top:3px">Pixel #' + id + '</div>' +
+              website +
+              message +
+            '</div>',
+            { className: 'pixel-popup' }
+          );
+
+          marker.on('click', async function(ev) {
+            L.DomEvent.stopPropagation(ev);
+
+            document.getElementById('checkout-modal').classList.add('hidden');
+            document.getElementById('checkout-modal').style.display = 'none';
+
+            document.getElementById('sold-place').textContent = 'Lade Ort ...';
+            document.getElementById('sold-owner').textContent = title;
+            document.getElementById('sold-id').textContent = 'Pixel #' + id;
+            setSharePixelId(id);
+            document.getElementById('sold-modal').classList.remove('hidden');
+            document.getElementById('sold-modal').style.display = 'flex';
+
+            try {
+              const check = await fetch('/api/pixel?id=' + encodeURIComponent(id));
+              const info = await check.json();
+              const place = info.place_name || 'Geografischer Pixel';
+              document.getElementById('sold-place').textContent = place;
+              const ownerEmoji = (info.pixel && info.pixel.emoji) ? info.pixel.emoji + ' ' : '';
+              document.getElementById('sold-owner').textContent =
+                info.pixel && info.pixel.display_name
+                  ? ownerEmoji + 'Gesichert von: ' + info.pixel.display_name
+                  : 'Dieser Pixel wurde bereits gesichert.';
+            } catch (_) {
+              document.getElementById('sold-place').textContent = 'Geografischer Pixel';
+            }
+          });
+
+          marker.addTo(soldLayer);
+        });
+
+        const stats = await fetch('/api/stats').then(r => r.ok ? r.json() : null).catch(() => null);
+        if (stats) {
+          const soldN = Number(stats.sold || 0);
+          document.getElementById('sold-count').textContent = soldN.toLocaleString('de-DE');
+          updateMilestone(soldN, Number(stats.remaining || 0));
+        }
+      } catch (err) {
+        console.error('Sold pixels could not be loaded:', err);
+      } finally {
+        loadingSold = false;
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, ch => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'
+      }[ch]));
+    }
+
+    map.on('moveend', loadSoldPixels);
+
+    async function selectAddress(lat, lon, label) {
+      let lbl = label || '';
+      if (!lbl && lastSearch &&
+          Math.abs(lat - lastSearch.lat) < 0.01 && Math.abs(lon - lastSearch.lon) < 0.02) {
+        lbl = lastSearch.label;
+      }
+      const pixelId = geoToId(lat, lon);
+
+      document.getElementById('coords-display').textContent =
+        'Lat: ' + normalizeCoord(lat, false).toFixed(4) + '°, Lon: ' + normalizeCoord(lon, true).toFixed(4) + '°';
+      document.getElementById('selected-info').textContent = (T[window.PM_LANG || 'en']?.check || 'Checking pixel #') + pixelId + ' ...';
+      document.getElementById('selected-place').textContent = '';
+
+      if (currentMarker) map.removeLayer(currentMarker);
+      currentMarker = L.marker([lat, lon], {
+        icon: makeIcon('selected-pixel'),
+        zIndexOffset: 1000
+      }).addTo(map);
+
+      try {
+        const qs = '?id=' + encodeURIComponent(pixelId) + '&clat=' + encodeURIComponent(lat) + '&clon=' + encodeURIComponent(lon) + (lbl ? '&label=' + encodeURIComponent(lbl) : '');
+        const res = await fetch('/api/pixel' + qs);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || ('Pixel API ' + res.status));
+
+        const sold = data.pixel;
+        const place = data.place_name || '';
+        document.getElementById('selected-place').textContent =
+          place ? (T[window.PM_LANG || 'en']?.place || 'Ort: ') + place : (T[window.PM_LANG || 'en']?.placeUnknown || 'Ort nicht ermittelt');
+
+        if (sold) {
+          document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.saved || 'gesichert');
+          document.getElementById('sold-place').textContent = place || 'Gesicherter Ort';
+          document.getElementById('sold-owner').textContent = sold.display_name
+            ? 'Gesichert von: ' + sold.display_name
+            : 'Dieser Pixel wurde bereits gesichert.';
+          document.getElementById('sold-id').textContent = 'Pixel #' + pixelId;
+
+          const soldMessageEl = document.getElementById('sold-message');
+          if (sold.message) {
+            soldMessageEl.textContent = '„' + sold.message + '“';
+            soldMessageEl.classList.remove('hidden');
+          } else {
+            soldMessageEl.textContent = '';
+            soldMessageEl.classList.add('hidden');
+          }
+
+          setSharePixelId(pixelId);
+          document.getElementById('sold-modal').classList.remove('hidden');
+          return;
+        }
+
+        document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.available || 'verfügbar');
+        openModal(pixelId, lat, lon, place);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('selected-info').textContent = 'Pixel #' + pixelId;
+        document.getElementById('checkout-error').textContent =
+          'Der Pixel konnte gerade nicht geprüft werden. Bitte erneut versuchen.';
+        document.getElementById('checkout-error').classList.remove('hidden');
+      }
+    }
+
+    map.on('click', function(e) {
+      selectAddress(e.latlng.lat, e.latlng.lng);
+    });
+
+    function hideSearchResults() {
+      const box = document.getElementById('search-results');
+      if (box) box.classList.add('hidden');
+    }
+
+    function showSearchStatus(msg) {
+      const box = document.getElementById('search-results');
+      if (!box) return;
+      box.innerHTML = '<div class="px-3 py-2.5 text-xs text-slate-400">' + escapeHtml(msg) + '</div>';
+      box.classList.remove('hidden');
+    }
+
+    async function doSearch(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      const inp = document.getElementById('address-search');
+      const box = document.getElementById('search-results');
+      const q = (inp && inp.value || '').trim();
+      if (q.length < 3) return false;
+      const searching = T[window.PM_LANG || 'en']?.searching || 'Suche …';
+      showSearchStatus(searching);
+      try {
+        const r = await fetch('/api/search?q=' + encodeURIComponent(q), { cache: 'no-store' });
+        const data = await r.json();
+        const items = data.results || [];
+        if (items.length === 0) {
+          showSearchStatus(T[window.PM_LANG || 'en']?.noResults || 'Nichts gefunden');
+          return false;
+        }
+        box.innerHTML = '';
+        for (const it of items) {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'w-full text-left px-3 py-2 hover:bg-emerald-500/10 transition';
+          const street = it.label.split(',')[0];
+          b.innerHTML =
+            '<div class="text-xs text-slate-200 font-semibold truncate">' + escapeHtml(street) + '</div>' +
+            '<div class="text-[10px] text-slate-500 truncate">' + escapeHtml(it.label) + '</div>';
+          b.addEventListener('click', () => {
+            hideSearchResults();
+            lastSearch = { lat: it.lat, lon: it.lon, label: it.label };
+            map.flyTo([it.lat, it.lon], 15, { animate: true, duration: 1.2 });
+            selectAddress(it.lat, it.lon, it.label);
+          });
+          box.appendChild(b);
+        }
+        box.classList.remove('hidden');
+      } catch (_) {
+        showSearchStatus(T[window.PM_LANG || 'en']?.searchError || 'Suche fehlgeschlagen');
+      }
+      return false;
+    }
+
+    document.addEventListener('click', (ev) => {
+      const form = document.getElementById('search-form');
+      if (form && !form.contains(ev.target)) hideSearchResults();
+    });
+
+    function normalizeCoord(v, isLon) {
+      const n = Number(v) || 0;
+      if (!isLon) return n;
+      return ((n + 180) % 360 + 360) % 360 - 180;
+    }
+
+    function fmtFallback(pixelId, lat, lon) {
+      const la = normalizeCoord(lat, false), lo = normalizeCoord(lon, true);
+      const dms = la >= 0 ? la.toFixed(4) + '°N' : (-la).toFixed(4) + '°S';
+      const dwe = lo >= 0 ? lo.toFixed(4) + '°O' : (-lo).toFixed(4) + '°W';
+      return 'Pixel #' + pixelId + ' · ' + dms + ' ' + dwe;
+    }
+
+    function openModal(pixelId, lat, lon, place) {
+      const modal = document.getElementById('checkout-modal');
+      const btn = document.getElementById('submit-btn');
+      trackEvent('checkout_open');
+
+      selectedPlaceLabel = place;
+      document.getElementById('pixel_id_input').value = pixelId;
+      document.getElementById('pixel_id_display').value =
+        place || (T[window.PM_LANG || 'en']?.loading || 'Ort wird ermittelt ...');
+      document.getElementById('modal-place').textContent =
+        place ? (T[window.PM_LANG || 'en']?.selectedPlace || 'Ort ausgewählt') : (T[window.PM_LANG || 'en']?.loading || 'Ort wird ermittelt ...');
+
+      if (!place) {
+        (async () => {
+          try {
+            const r = await fetch('/api/pixel?id=' + encodeURIComponent(pixelId), { cache: 'no-store' });
+            const d = await r.json();
+            const p2 = String(d.place_name || '').trim();
+            if (p2) {
+              selectedPlaceLabel = p2;
+              document.getElementById('pixel_id_display').value = p2;
+              document.getElementById('modal-place').textContent =
+                T[window.PM_LANG || 'en']?.selectedPlace || 'Ort ausgewählt';
+            } else if (!modal.classList.contains('hidden')) {
+              const fallback = fmtFallback(pixelId, lat, lon);
+              selectedPlaceLabel = fallback;
+              document.getElementById('pixel_id_display').value = fallback;
+              document.getElementById('modal-place').textContent = fallback;
+            }
+          } catch (_) {
+            if (!modal.classList.contains('hidden')) {
+              const fallback = fmtFallback(pixelId, lat, lon);
+              selectedPlaceLabel = fallback;
+              document.getElementById('pixel_id_display').value = fallback;
+              document.getElementById('modal-place').textContent = fallback;
+            }
+          }
+        })();
+      }
+
+      document.getElementById('checkout-error').classList.add('hidden');
+      btn.disabled = false;
+      btn.textContent = T[window.PM_LANG || 'en']?.stripeButton || 'Weiter zu Stripe · 1,00 €';
+
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
+      modal.style.visibility = 'visible';
+      modal.style.opacity = '1';
+
+      setTimeout(() => {
+        const name = document.getElementById('display_name');
+        if (name) name.focus();
+      }, 50);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('checkout-modal');
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+      modal.style.visibility = 'hidden';
+      modal.style.opacity = '0';
+    }
+
+    function closeSoldModal() {
+      const modal = document.getElementById('sold-modal');
+      modal.classList.add('hidden');
+      modal.style.display = 'none';
+    }
+
+    let currentSharePixelId = null;
+    let selectedPlaceLabel = '';
+    let lastSearch = null;
+
+    function setSharePixelId(id) {
+      currentSharePixelId = id;
+    }
+
+    async function sharePixel() {
+      if (currentSharePixelId === null) return;
+      const url = location.origin + '/p/' + currentSharePixelId;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      const el = document.getElementById('share-copied');
+      if (el) {
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 2500);
+      }
+    }
+
+    async function handleSharePixel(pixelId) {
+      try {
+        const res = await fetch('/api/pixel?id=' + encodeURIComponent(pixelId));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || ('Pixel API ' + res.status));
+
+        const place = data.place_name || '';
+        const geo = data.geo || {};
+        const lat = Number(geo.lat) || 0;
+        const lon = Number(geo.lon) || 0;
+
+        map.setView([lat, lon], 12, { animate: false });
+        if (currentMarker) map.removeLayer(currentMarker);
+        currentMarker = L.marker([lat, lon], { icon: makeIcon('selected-pixel'), zIndexOffset: 1000 }).addTo(map);
+
+        document.getElementById('coords-display').textContent = 'Lat: ' + lat.toFixed(4) + '°, Lon: ' + lon.toFixed(4) + '°';
+        document.getElementById('selected-place').textContent =
+          place ? (T[window.PM_LANG || 'en']?.place || 'Ort: ') + place : (T[window.PM_LANG || 'en']?.placeUnknown || 'Ort nicht ermittelt');
+
+        if (data.pixel) {
+          setSharePixelId(pixelId);
+          document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.saved || 'gesichert');
+          document.getElementById('sold-place').textContent = place || 'Gesicherter Ort';
+          document.getElementById('sold-owner').textContent = data.pixel.display_name
+            ? 'Gesichert von: ' + data.pixel.display_name
+            : 'Dieser Pixel wurde bereits gesichert.';
+          document.getElementById('sold-id').textContent = 'Pixel #' + pixelId;
+
+          const soldMessageEl = document.getElementById('sold-message');
+          if (data.pixel.message) {
+            soldMessageEl.textContent = '„' + data.pixel.message + '“';
+            soldMessageEl.classList.remove('hidden');
+          } else {
+            soldMessageEl.textContent = '';
+            soldMessageEl.classList.add('hidden');
+          }
+
+          document.getElementById('sold-modal').classList.remove('hidden');
+          document.getElementById('sold-modal').style.display = 'flex';
+        } else {
+          document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.available || 'verfügbar');
+        }
+      } catch (err) {
+        console.error('Share pixel could not be loaded:', err);
+      }
+    }
+
+    // A/B-Funnel-Messung (Gruppen a/b): cta_click -> checkout_open -> checkout_submit
+    const _abParam = new URLSearchParams(location.search).get('v');
+    const _abCookie = /(?:^|;\s*)pm_ab=([ab])/.exec(document.cookie);
+    const _abStored = localStorage.getItem('pixelmaps-ab');
+    window.PM_AB = /^[ab]$/.test(_abParam || '') ? _abParam : (_abCookie ? _abCookie[1] : (/^[ab]$/.test(_abStored || '') ? _abStored : 'a'));
+    try { localStorage.setItem('pixelmaps-ab', window.PM_AB); } catch (_) {}
+    document.documentElement.dataset.ab = window.PM_AB;
+    window.PM_AB_COPY = {
+      de: { intro:'Klicke auf einen freien Punkt auf der Weltkarte und sichere deinen geografischen Pixel für 1 €.', priceTag:'Ein Pixel – dein Stück von 1 Milliarde auf der Weltkarte' },
+      en: { intro:'Click a free point on the world map and secure your geographic pixel for €1.', priceTag:'One pixel – your piece of a billion on the world map' }
+    };
+
+    function trackEvent(name) {
+      try {
+        fetch('/api/track?e=' + encodeURIComponent(name) + '&ab=' + window.PM_AB, { cache: 'no-store', keepalive: true }).catch(() => {});
+      } catch (_) {}
+    }
+
+    function focusForPurchase() {
+      map.setView([51.1657, 10.4515], 5, { animate: true });
+      trackEvent('cta_click');
+    }
+
+    const CHECKOUT_EMOJIS = ["🐠","🐙","🦈","🐬","🐋","🦀","🐊","🐼","🦊","🐸","🐝","🦋","🌵","🌴","🍀","🌸","🌊","⛰️","🏝️","🏔️","🎄","⛵","🚀","⭐","🔥","💎","🎯","⚽","🎲","🎧","🎵","❤️","🤙","😎"];
+    let checkoutEmoji = '';
+
+    function renderEmojiPicker() {
+      const box = document.getElementById('emoji-picker');
+      if (!box) return;
+      box.innerHTML = '';
+      CHECKOUT_EMOJIS.forEach(e => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = e;
+        b.dataset.emoji = e;
+        b.className = 'emoji-opt w-9 h-9 rounded-lg text-lg flex items-center justify-center border border-slate-800 hover:border-emerald-400/60 bg-slate-950 transition';
+        b.addEventListener('click', () => {
+          checkoutEmoji = (checkoutEmoji === e) ? '' : e;
+          document.querySelectorAll('#emoji-picker .emoji-opt').forEach(x => {
+            const active = x.dataset.emoji === checkoutEmoji;
+            x.className = 'emoji-opt w-9 h-9 rounded-lg text-lg flex items-center justify-center border transition ' +
+              (active ? 'border-emerald-400 bg-emerald-400/20 ring-1 ring-emerald-400' : 'border-slate-800 hover:border-emerald-400/60 bg-slate-950');
+          });
+        });
+        box.appendChild(b);
+      });
+    }
+    renderEmojiPicker();
+
+    async function submitCheckout(e) {
+      e.preventDefault();
+      trackEvent('checkout_submit');
+
+      const btn = document.getElementById('submit-btn');
+      const errorEl = document.getElementById('checkout-error');
+      errorEl.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = (window.PM_LANG === 'de' ? 'Lade Stripe Checkout ...' : 'Loading Stripe Checkout ...');
+
+      const payload = {
+        pixel_id: Number(document.getElementById('pixel_id_input').value),
+        display_name: document.getElementById('display_name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        website: document.getElementById('website').value.trim(),
+        message: document.getElementById('message').value.trim().slice(0, 30),
+        emoji: checkoutEmoji,
+        consent: document.getElementById('consent').checked,
+        cc: window.PM_CC || '',
+        currency: window.PM_PRICE ? window.PM_PRICE.currency : '',
+        place_label: selectedPlaceLabel || undefined
+      };
+
+      try {
+        const res = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok && data.url) {
+          window.location.href = data.url;
+          return;
+        }
+
+        throw new Error(data.error || 'Checkout konnte nicht gestartet werden.');
+      } catch (err) {
+        errorEl.textContent = err.message || 'Checkout konnte nicht gestartet werden.';
+        errorEl.classList.remove('hidden');
+        btn.disabled = false;
+        renderPrice();
+      }
+    }
+
+    const messageInput = document.getElementById('message');
+    const messageCount = document.getElementById('message-count');
+    if (messageInput && messageCount) {
+      messageInput.addEventListener('input', () => {
+        if (messageInput.value.length > 30) messageInput.value = messageInput.value.slice(0, 30);
+        messageCount.textContent = messageInput.value.length + '/30';
+      });
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal();
+        closeSoldModal();
+      }
+    });
+
+    const LANGS = {
+      de: { name:'Deutsch', flag:'🇩🇪' },
+      en: { name:'English', flag:'🇬🇧' },
+      fr: { name:'Français', flag:'🇫🇷' },
+      es: { name:'Español', flag:'🇪🇸' },
+      it: { name:'Italiano', flag:'🇮🇹' },
+      nl: { name:'Nederlands', flag:'🇳🇱' },
+      pl: { name:'Polski', flag:'🇵🇱' },
+      pt: { name:'Português', flag:'🇵🇹' },
+      zh: { name:'中文', flag:'🇨🇳' },
+      hi: { name:'हिन्दी', flag:'🇮🇳' }
+    };
+
+    const T = {
+      de: {
+        badge:'One World · One Billion Pixels',
+        hero:'One World.<br><span class="text-emerald-300">One Billion</span> Pixels.<br>Your Pixel.',
+        priceTag:'Dein Pixel auf der Weltkarte für nur 1 €',
+        intro:'Wähle einen Ort auf der Weltkarte, sichere deinen Pixel für 1 € – dein Punkt bleibt für immer dort, mit deinem Namen &amp; deiner Urkunde.',
+        stepsTitle:"So funktioniert's",
+        step1:'Ort auf der Karte wählen',
+        step2:'Name &amp; E-Mail eintragen',
+        step3:'1 € zahlen – Pixel + Urkunde erhalten',
+        step1s:'1 · Karte wählen', step2s:'2 · Name &amp; E-Mail', step3s:'3 · 1 € → Pixel + Urkunde',
+        whatYouGet:'Dein Name &amp; Emoji erscheinen auf der Karte – plus deine digitale Weltrekord-Urkunde (PDF) per E-Mail.',
+        notice:'Gemeinsamer Weltrekordversuch – die Anerkennung wird angestrebt, ist aber noch nicht offiziell bestätigt.',
+        searchPlaceholder:'Straße &amp; Hausnummer suchen …', searchBtn:'Suchen',
+        searching:'Suche …', noResults:'Nichts gefunden', searchError:'Suche fehlgeschlagen',
+        confirming:'Zahlung wird bestätigt — die Urkunde wird geladen…', paidThanks:'Zahlung erhalten — vielen Dank!',
+        cta:'WÄHLE DEINEN PIXEL · 1 €',
+        selectedLabel:'Ausgewählter Pixel:',
+        mapHint:'Klicke auf die Karte...',
+        soldPixel:'Gesicherter Pixel',
+        selectedPixel:'Ausgewählter Pixel',
+        footerHint:'Klicke auf einen Punkt der Weltkarte',
+        modalTitle:'Deinen Pixel sichern',
+        chosenPlace:'Dein gewählter Ort',
+        nameLabel:'Dein Name / Anzeigename *',
+        emailLabel:'E-Mail Adresse (für Zertifikat) *',
+        websiteLabel:'Webseite (optional)',
+        messageLabel:'Message auf deinem Pixel (optional)',
+        messageHelp:'Wird beim Pixel angezeigt.', emojiLabel:'Pixel-Emoji (optional)', recentSold:'wurde gesichert', milestoneLabel:'Nächster Meilenstein', remainingLabel:'noch frei',
+        stripeButton:'Weiter zu Stripe · 1,00 €',
+        soldTitle:'Pixel bereits gesichert',
+        otherPlace:'Andere Stelle auswählen',
+        saved:'gesichert', available:'verfügbar',
+        check:'Prüfe Pixel #',
+        place:'Ort: ', placeUnknown:'Ort nicht ermittelt',
+        loading:'Ort wird ermittelt ...',
+        selectedPlace:'Ort ausgewählt',
+        consentLabel:'Ich willige ein, dass mein Anzeigename, meine Webseite und meine Nachricht öffentlich auf der Karte angezeigt werden, und dass meine Daten gemäß der <a href="/datenschutz" target="_blank" rel="noopener" class="text-emerald-400 underline">Datenschutzerklärung</a> verarbeitet werden. Ich akzeptiere die <a href="/agb" target="_blank" rel="noopener" class="text-emerald-400 underline">AGB</a> und bin mindestens 16 Jahre alt.',
+        footerImprint:'Impressum', footerPrivacy:'Datenschutz', footerTerms:'AGB', footerAbout:'Über & FAQ'
+      },
+      en: {
+        badge:'One World · One Billion Pixels',
+        hero:'One World.<br><span class="text-emerald-300">One Billion</span> Pixels.<br>Your Pixel.',
+        priceTag:'Your pixel on the world map for just €1',
+        intro:'Pick a spot on the world map and secure your pixel for €1 – it stays there forever, with your name &amp; your certificate.',
+        stepsTitle:'How it works',
+        step1:'Choose a spot on the map',
+        step2:'Enter name &amp; email',
+        step3:'Pay €1 – pixel + certificate',
+        step1s:'1 · Pick a spot', step2s:'2 · Name &amp; email', step3s:'3 · €1 → pixel + certificate',
+        whatYouGet:'Your name &amp; emoji appear on the map – plus your digital world-record certificate (PDF) by email.',
+        notice:'A shared world-record attempt – recognition is being pursued but is not yet officially confirmed.',
+        searchPlaceholder:'Search street &amp; number …', searchBtn:'Search',
+        searching:'Searching …', noResults:'Nothing found', searchError:'Search failed',
+        confirming:'Payment confirmed — loading your certificate…', paidThanks:'Payment received — thank you!',
+        cta:'CHOOSE YOUR PIXEL · €1',
+        selectedLabel:'Selected pixel:',
+        mapHint:'Click the map...',
+        soldPixel:'Secured pixel',
+        selectedPixel:'Selected pixel',
+        footerHint:'Click a point on the world map',
+        modalTitle:'Secure your pixel',
+        chosenPlace:'Your chosen place',
+        nameLabel:'Your name / display name *',
+        emailLabel:'Email address (for certificate) *',
+        websiteLabel:'Website (optional)',
+        messageLabel:'Message on your pixel (optional)',
+        messageHelp:'Shown with your pixel.', emojiLabel:'Pixel emoji (optional)', recentSold:'was secured', milestoneLabel:'Next milestone', remainingLabel:'remaining',
+        stripeButton:'Continue to Stripe · €1.00',
+        soldTitle:'Pixel already secured',
+        otherPlace:'Choose another place',
+        saved:'secured', available:'available',
+        check:'Checking pixel #',
+        place:'Place: ', placeUnknown:'Place not found',
+        loading:'Finding place ...',
+        selectedPlace:'Place selected',
+        consentLabel:'I agree that my display name, website and message may be publicly shown on the map, and that my data is processed according to the <a href="/en/privacy" target="_blank" rel="noopener" class="text-emerald-400 underline">privacy policy</a>. I accept the <a href="/en/terms" target="_blank" rel="noopener" class="text-emerald-400 underline">terms</a> and I am at least 16 years old.',
+        footerImprint:'Imprint', footerPrivacy:'Privacy', footerTerms:'Terms', footerAbout:'About & FAQ'
+      },
+      fr: {
+        badge:'Un monde · Un milliard de pixels',
+        hero:'Un monde.<br><span class="text-emerald-300">Un milliard</span> de pixels.<br>Votre pixel.',
+        intro:'Cliquez sur un point libre de la carte et sécurisez votre pixel géographique pour 1 €.',
+        cta:'SÉCURISER MON PIXEL · 1 €',
+        selectedLabel:'Pixel sélectionné :', mapHint:'Cliquez sur la carte...',
+        soldPixel:'Pixel sécurisé', selectedPixel:'Pixel sélectionné',
+        footerHint:'Cliquez sur un point de la carte', modalTitle:'Sécuriser votre pixel',
+        chosenPlace:'Lieu choisi', nameLabel:'Votre nom / nom affiché *', emailLabel:'Adresse e-mail (pour le certificat) *',
+        websiteLabel:'Site web (facultatif)', messageLabel:'Message sur votre pixel (facultatif)',
+        messageHelp:'Affiché avec votre pixel.', emojiLabel:'Emoji du pixel (facultatif)', recentSold:'a été sécurisé', milestoneLabel:'Prochain jalon', remainingLabel:'restants', stripeButton:'Continuer vers Stripe · 1,00 €',
+        soldTitle:'Pixel déjà sécurisé', otherPlace:'Choisir un autre lieu',
+        saved:'sécurisé', available:'disponible', check:'Vérification du pixel #',
+        place:'Lieu : ', placeUnknown:'Lieu introuvable', loading:'Recherche du lieu ...', selectedPlace:'Lieu sélectionné'
+      },
+      es: {
+        badge:'Un mundo · Mil millones de píxeles',
+        hero:'Un mundo.<br><span class="text-emerald-300">Mil millones</span> de píxeles.<br>Tu píxel.',
+        intro:'Haz clic en un punto libre del mapa y asegura tu píxel geográfico por 1 €.',
+        cta:'ASEGURA MI PÍXEL · 1 €',
+        selectedLabel:'Píxel seleccionado:', mapHint:'Haz clic en el mapa...',
+        soldPixel:'Píxel asegurado', selectedPixel:'Píxel seleccionado',
+        footerHint:'Haz clic en un punto del mapa', modalTitle:'Asegura tu píxel',
+        chosenPlace:'Lugar elegido', nameLabel:'Tu nombre / nombre mostrado *',
+        emailLabel:'Correo electrónico (para el certificado) *', websiteLabel:'Sitio web (opcional)',
+        messageLabel:'Mensaje en tu píxel (opcional)', messageHelp:'Se muestra con tu píxel.', emojiLabel:'Emoji del píxel (opcional)', recentSold:'fue asegurado', milestoneLabel:'Próximo hito', remainingLabel:'disponibles',
+        stripeButton:'Continuar a Stripe · 1,00 €', soldTitle:'Píxel ya asegurado',
+        otherPlace:'Elegir otro lugar', saved:'asegurado', available:'disponible',
+        check:'Comprobando píxel #', place:'Lugar: ', placeUnknown:'Lugar no encontrado',
+        loading:'Buscando lugar ...', selectedPlace:'Lugar seleccionado'
+      },
+      it: {
+        badge:'Un mondo · Un miliardo di pixel',
+        hero:'Un mondo.<br><span class="text-emerald-300">Un miliardo</span> di pixel.<br>Il tuo pixel.',
+        intro:'Clicca su un punto libero della mappa e assicurati il tuo pixel geografico per 1 €.',
+        cta:'ASSICURA IL MIO PIXEL · 1 €',
+        selectedLabel:'Pixel selezionato:', mapHint:'Clicca sulla mappa...',
+        soldPixel:'Pixel assicurato', selectedPixel:'Pixel selezionato',
+        footerHint:'Clicca su un punto della mappa', modalTitle:'Assicura il tuo pixel',
+        chosenPlace:'Luogo scelto', nameLabel:'Nome / nome visualizzato *',
+        emailLabel:'Indirizzo e-mail (per il certificato) *', websiteLabel:'Sito web (facoltativo)',
+        messageLabel:'Messaggio sul tuo pixel (facoltativo)', messageHelp:'Mostrato con il tuo pixel.', emojiLabel:'Emoji del pixel (facoltativo)', recentSold:'è stato assicurato', milestoneLabel:'Prossimo traguardo', remainingLabel:'rimanenti',
+        stripeButton:'Continua con Stripe · 1,00 €', soldTitle:'Pixel già assicurato',
+        otherPlace:'Scegli un altro luogo', saved:'assicurato', available:'disponibile',
+        check:'Controllo pixel #', place:'Luogo: ', placeUnknown:'Luogo non trovato',
+        loading:'Ricerca del luogo ...', selectedPlace:'Luogo selezionato'
+      },
+      nl: {
+        badge:'Eén wereld · Eén miljard pixels',
+        hero:'Eén wereld.<br><span class="text-emerald-300">Eén miljard</span> pixels.<br>Jouw pixel.',
+        intro:'Klik op een vrij punt op de wereldkaart en beveilig je geografische pixel voor €1.',
+        cta:'MIJN PIXEL VEILIGSTELLEN · €1',
+        selectedLabel:'Geselecteerde pixel:', mapHint:'Klik op de kaart...',
+        soldPixel:'Beveiligde pixel', selectedPixel:'Geselecteerde pixel',
+        footerHint:'Klik op een punt op de wereldkaart', modalTitle:'Beveilig je pixel',
+        chosenPlace:'Gekozen plaats', nameLabel:'Je naam / weergavenaam *',
+        emailLabel:'E-mailadres (voor certificaat) *', websiteLabel:'Website (optioneel)',
+        messageLabel:'Bericht op je pixel (optioneel)', messageHelp:'Wordt bij je pixel weergegeven.', emojiLabel:'Pixel-emoji (optioneel)', recentSold:'is beveiligd', milestoneLabel:'Volgende mijlpaal', remainingLabel:'resterend',
+        stripeButton:'Doorgaan naar Stripe · €1,00', soldTitle:'Pixel al beveiligd',
+        otherPlace:'Andere plaats kiezen', saved:'beveiligd', available:'beschikbaar',
+        check:'Pixel controleren #', place:'Plaats: ', placeUnknown:'Plaats niet gevonden',
+        loading:'Plaats zoeken ...', selectedPlace:'Plaats geselecteerd'
+      },
+      pl: {
+        badge:'Jeden świat · Miliard pikseli',
+        hero:'Jeden świat.<br><span class="text-emerald-300">Miliard</span> pikseli.<br>Twój piksel.',
+        intro:'Kliknij wolny punkt na mapie świata i zabezpiecz swój piksel geograficzny za 1 €.',
+        cta:'ZABEZPIECZ MÓJ PIKSEL · 1 €',
+        selectedLabel:'Wybrany piksel:', mapHint:'Kliknij mapę...',
+        soldPixel:'Zabezpieczony piksel', selectedPixel:'Wybrany piksel',
+        footerHint:'Kliknij punkt na mapie świata', modalTitle:'Zabezpiecz swój piksel',
+        chosenPlace:'Wybrane miejsce', nameLabel:'Imię i nazwisko / nazwa wyświetlana *',
+        emailLabel:'Adres e-mail (do certyfikatu) *', websiteLabel:'Strona internetowa (opcjonalnie)',
+        messageLabel:'Wiadomość na pikselu (opcjonalnie)', messageHelp:'Będzie wyświetlana przy pikselu.', emojiLabel:'Emoji piksela (opcjonalnie)', recentSold:'został zabezpieczony', milestoneLabel:'Następny kamień milowy', remainingLabel:'pozostało',
+        stripeButton:'Przejdź do Stripe · 1,00 €', soldTitle:'Piksel już zabezpieczony',
+        otherPlace:'Wybierz inne miejsce', saved:'zabezpieczony', available:'dostępny',
+        check:'Sprawdzanie piksela #', place:'Miejsce: ', placeUnknown:'Nie znaleziono miejsca',
+        loading:'Ustalanie miejsca ...', selectedPlace:'Wybrane miejsce'
+      },
+      pt: {
+        badge:'Um mundo · Um bilhão de pixels',
+        hero:'Um mundo.<br><span class="text-emerald-300">Um bilhão</span> de pixels.<br>Seu pixel.',
+        intro:'Clique em um ponto livre no mapa e garanta seu pixel geográfico por 1 €.',
+        cta:'GARANTIR MEU PIXEL · 1 €',
+        selectedLabel:'Pixel selecionado:', mapHint:'Clique no mapa...',
+        soldPixel:'Pixel garantido', selectedPixel:'Pixel selecionado',
+        footerHint:'Clique em um ponto do mapa', modalTitle:'Garanta seu pixel',
+        chosenPlace:'Local escolhido', nameLabel:'Seu nome / nome exibido *',
+        emailLabel:'E-mail (para o certificado) *', websiteLabel:'Site (opcional)',
+        messageLabel:'Mensagem no seu pixel (opcional)', messageHelp:'Será exibida com seu pixel.', emojiLabel:'Emoji do pixel (opcional)', recentSold:'foi garantido', milestoneLabel:'Próximo marco', remainingLabel:'restantes',
+        stripeButton:'Continuar para Stripe · 1,00 €', soldTitle:'Pixel já garantido',
+        otherPlace:'Escolher outro local', saved:'garantido', available:'disponível',
+        check:'Verificando pixel #', place:'Local: ', placeUnknown:'Local não encontrado',
+        loading:'Localizando ...', selectedPlace:'Local selecionado'
+      },
+      zh: {
+        badge:'一个世界 · 十亿像素',
+        hero:'一个世界。<br><span class="text-emerald-300">十亿</span>像素。<br>你的像素。',
+        intro:'点击世界地图上的一个空闲位置，以 1 欧元锁定你的地理像素。',
+        cta:'锁定我的像素 · 1 欧元',
+        selectedLabel:'已选像素：',
+        mapHint:'点击地图…',
+        soldPixel:'已锁定像素',
+        selectedPixel:'已选像素',
+        footerHint:'点击世界地图上的任意位置',
+        modalTitle:'锁定你的像素',
+        chosenPlace:'你选择的位置',
+        nameLabel:'你的姓名 / 显示名称 *',
+        emailLabel:'电子邮箱地址（用于证书）*',
+        websiteLabel:'网站（可选）',
+        messageLabel:'像素上的消息（可选）',
+        messageHelp:'会显示在你的像素旁。', emojiLabel:'像素表情符号（可选）', recentSold:'已被锁定', milestoneLabel:'下一个里程碑', remainingLabel:'剩余',
+        stripeButton:'前往 Stripe 支付 · 1,00 €',
+        soldTitle:'像素已被锁定',
+        otherPlace:'选择其他位置',
+        saved:'已锁定', available:'可锁定',
+        check:'正在检查像素 #',
+        place:'位置：', placeUnknown:'无法确定位置',
+        loading:'正在查找位置…', selectedPlace:'已选择位置',
+        consentLabel:'我同意我的显示名称、网站和消息可以在地图上公开展示，并且我的数据将按照 <a href="/en/privacy" target="_blank" rel="noopener" class="text-emerald-400 underline">隐私政策</a> 处理。我接受 <a href="/en/terms" target="_blank" rel="noopener" class="text-emerald-400 underline">条款</a>，且我至少年满 16 周岁。',
+        footerImprint:'法律声明', footerPrivacy:'隐私政策', footerTerms:'条款', footerAbout:'关于与常见问题'
+      },
+      hi: {
+        badge:'एक दुनिया · एक अरब पिक्सल',
+        hero:'एक दुनिया।<br><span class="text-emerald-300">एक अरब</span> पिक्सल।<br>आपका पिक्सल।',
+        priceTag:'विश्व मानचित्र पर आपका पिक्सल सिर्फ 1 € में',
+        intro:'विश्व मानचित्र पर कोई भी स्थान चुनें और अपना पिक्सल 1 € में सुरक्षित करें – यह आपके नाम और प्रमाणपत्र के साथ हमेशा के लिए वहीं रहता है।',
+        stepsTitle:'यह कैसे काम करता है',
+        step1:'मानचित्र पर स्थान चुनें',
+        step2:'नाम और ईमेल दर्ज करें',
+        step3:'1 € का भुगतान करें – पिक्सल + प्रमाणपत्र',
+        step1s:'1 · स्थान चुनें', step2s:'2 · नाम और ईमेल', step3s:'3 · 1 € → पिक्सल + प्रमाणपत्र',
+        whatYouGet:'आपका नाम और इमोजी मानचित्र पर दिखते हैं – साथ ही आपका डिजिटल विश्व-रिकॉर्ड प्रमाणपत्र (PDF) ईमेल से मिलता है।',
+        notice:'साझा विश्व-रिकॉर्ड प्रयास – मान्यता का लक्ष्य है, पर अभी आधिकारिक रूप से पुष्टि नहीं।',
+        searchPlaceholder:'सड़क और नंबर खोजें …', searchBtn:'खोजें',
+        searching:'खोज …', noResults:'कुछ नहीं मिला', searchError:'खोज विफल',
+        confirming:'भुगतान की पुष्टि हो रही है — प्रमाणपत्र लोड हो रहा है…', paidThanks:'भुगतान प्राप्त — धन्यवाद!',
+        cta:'अपना पिक्सल चुनें · 1 €',
+        selectedLabel:'चयनित पिक्सल:',
+        mapHint:'मानचित्र पर क्लिक करें...',
+        soldPixel:'सुरक्षित पिक्सल',
+        selectedPixel:'चयनित पिक्सल',
+        footerHint:'विश्व मानचित्र पर एक बिंदु पर क्लिक करें',
+        modalTitle:'अपना पिक्सल सुरक्षित करें',
+        chosenPlace:'आपका चुना हुआ स्थान',
+        nameLabel:'आपका नाम / प्रदर्शित नाम *',
+        emailLabel:'ईमेल पता (प्रमाणपत्र के लिए) *',
+        websiteLabel:'वेबसाइट (वैकल्पिक)',
+        messageLabel:'आपके पिक्सल पर संदेश (वैकल्पिक)',
+        messageHelp:'आपके पिक्सल के साथ दिखाया जाता है।', emojiLabel:'पिक्सल इमोजी (वैकल्पिक)', recentSold:'सुरक्षित हुआ', milestoneLabel:'अगला माइलस्टोन', remainingLabel:'शेष',
+        stripeButton:'Stripe पर जाएँ · 1,00 €',
+        soldTitle:'पिक्सल पहले से सुरक्षित',
+        otherPlace:'दूसरा स्थान चुनें',
+        saved:'सुरक्षित', available:'उपलब्ध',
+        check:'पिक्सल # जाँच',
+        place:'स्थान: ', placeUnknown:'स्थान नहीं मिला',
+        loading:'स्थान खोजा जा रहा है ...',
+        selectedPlace:'स्थान चुना गया',
+        consentLabel:'मैं सहमत हूँ कि मेरा प्रदर्शित नाम, वेबसाइट और संदेश मानचित्र पर सार्वजनिक रूप से दिखाए जा सकते हैं, और मेरा डेटा <a href="/hi/privacy" target="_blank" rel="noopener" class="text-emerald-400 underline">गोपनीयता नीति</a> के अनुसार संसाधित किया जाता है। मैं <a href="/hi/terms" target="_blank" rel="noopener" class="text-emerald-400 underline">नियम और शर्तें</a> स्वीकार करता हूँ और मेरी आयु कम से कम 16 वर्ष है।',
+        footerImprint:'छाप', footerPrivacy:'गोपनीयता नीति', footerTerms:'नियम', footerAbout:'परिचय और FAQ'
+      }
+    };
+
+function applyLanguage(lang) {
+      lang = LANGS[lang] ? lang : 'en';
+      const t = T[lang];
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        // i18n-Fallback: fehlende Schluessel fallen auf Englisch zurueck
+        const v = t[key] !== undefined ? t[key] : T.en[key];
+        if (v !== undefined) el.innerHTML = v;
+      });
+      document.getElementById('language-name').textContent = LANGS[lang].name;
+      document.getElementById('language-flag').textContent = LANGS[lang].flag;
+      const searchInput = document.getElementById('address-search');
+      if (searchInput) searchInput.placeholder = (t.searchPlaceholder || T.en.searchPlaceholder || '').replace(/&amp;/g, '&');
+      localStorage.setItem('pixelmaps-language', lang);
+      window.PM_LANG = lang;
+      if (window.PM_AB === 'b') {
+        const ab = window.PM_AB_COPY[lang] || window.PM_AB_COPY.en;
+        if (ab) {
+          document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (ab[key] !== undefined) el.innerHTML = ab[key];
+          });
+        }
+      }
+      renderPrice();
+      applyLegalLinks(lang);
+    }
+
+    const LEGAL_LINKS = {
+      de: { imprint: '/impressum', privacy: '/datenschutz', terms: '/agb', about: '/ueber' },
+      en: { imprint: '/en/impressum', privacy: '/en/privacy', terms: '/en/terms', about: '/en/about' },
+      hi: { imprint: '/hi/impressum', privacy: '/hi/privacy', terms: '/hi/terms', about: '/hi/about' }
+    };
+
+    function applyLegalLinks(lang) {
+      const m = LEGAL_LINKS[lang] || LEGAL_LINKS.en;
+      const imprint = document.querySelector('[data-i18n="footerImprint"]');
+      const privacy = document.querySelector('[data-i18n="footerPrivacy"]');
+      const terms = document.querySelector('[data-i18n="footerTerms"]');
+      const about = document.querySelector('[data-i18n="footerAbout"]');
+      if (imprint) imprint.setAttribute('href', m.imprint);
+      if (privacy) privacy.setAttribute('href', m.privacy);
+      if (terms) terms.setAttribute('href', m.terms);
+      if (about) about.setAttribute('href', m.about);
+    }
+
+    let recentList = [];
+    let recentIndex = -1;
+
+    async function loadRecent() {
+      try {
+        const r = await fetch('/api/recent?limit=10', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        recentList = Array.isArray(data.pixels) ? data.pixels : [];
+      } catch (_) {}
+    }
+
+    function formatTimeAgo(dt) {
+      if (!dt) return '';
+      const t = Date.parse(String(dt).replace(' ', 'T') + 'Z');
+      if (Number.isNaN(t)) return '';
+      const diffSec = Math.floor((Date.now() - t) / 1000);
+      const cur = (window.PM_LANG && LANGS[window.PM_LANG]) ? window.PM_LANG : 'en';
+      const fmt = new Intl.RelativeTimeFormat(cur === 'zh' ? 'zh-CN' : cur, { numeric: 'auto' });
+      if (diffSec < 60) return fmt.format(-Math.max(1, diffSec), 'second');
+      if (diffSec < 3600) return fmt.format(-Math.floor(diffSec / 60), 'minute');
+      if (diffSec < 86400) return fmt.format(-Math.floor(diffSec / 3600), 'hour');
+      return fmt.format(-Math.floor(diffSec / 86400), 'day');
+    }
+
+    function tickRecent() {
+      const el = document.getElementById('recent-ticker');
+      const txt = document.getElementById('recent-ticker-text');
+      if (!el || !txt || recentList.length === 0) return;
+      recentIndex = (recentIndex + 1) % recentList.length;
+      const p = recentList[recentIndex];
+      if (!p) return;
+      const name = p.display_name ? ' · ' + p.display_name : '';
+      const ago = formatTimeAgo(p.created_at);
+      txt.textContent = 'Pixel #' + p.pixel_id + ' ' + (T[window.PM_LANG || 'en']?.recentSold || 'wurde gesichert') + name + (ago ? ' · ' + ago : '');
+      txt.dataset.pixelId = String(p.pixel_id);
+      el.classList.remove('hidden');
+      txt.classList.remove('ticker-pop');
+      void txt.offsetWidth;
+      txt.classList.add('ticker-pop');
+    }
+
+    function openTickerClick() {
+      const txt = document.getElementById('recent-ticker-text');
+      const id = Number(txt && txt.dataset.pixelId);
+      if (Number.isInteger(id) && id >= 0) handleSharePixel(id);
+    }
+
+    function updateMilestone(sold, remaining) {
+      const mc = document.getElementById('milestone-count');
+      const bar = document.getElementById('milestone-bar');
+      const rem = document.getElementById('milestone-remaining');
+      if (!mc || !bar) return;
+      const target = Math.max(100, Math.ceil((sold + 1) / 100) * 100);
+      mc.textContent = sold + '/' + target;
+      bar.style.width = Math.min(100, Math.round((sold / target) * 100)) + '%';
+      if (rem) rem.textContent = Number(remaining || 0).toLocaleString('de-DE');
+    }
+
+    async function initRecentTicker() {
+      await loadRecent();
+      tickRecent();
+      setInterval(tickRecent, 9000);
+    }
+
+    function renderPrice() {
+      const p = window.PM_PRICE;
+      const lang = window.PM_LANG || 'en';
+      const t = T[lang] || T.en;
+      if (p && p.display) {
+        const btn = document.getElementById('submit-btn');
+        const span = btn && btn.querySelector('span[data-i18n="stripeButton"]');
+        if (span) {
+          const base = (t.stripeButton || '').split('·').map(s => s.trim()).filter(Boolean);
+          if (base.length > 1) span.textContent = base[0] + ' · ' + p.display;
+        }
+        const cta = document.getElementById('cta-btn-text');
+        if (cta) {
+          const cbase = (t.cta || '').split('·').map(s => s.trim()).filter(Boolean);
+          if (cbase.length > 1) cta.textContent = cbase[0] + ' · ' + p.display;
+        }
+      }
+    }
+
+    async function refreshPrice() {
+      try {
+        const cc = window.PM_CC || '';
+        const r = await fetch('/api/price' + (cc ? '?cc=' + encodeURIComponent(cc) : ''), { cache: 'no-store' });
+        if (!r.ok) return;
+        window.PM_PRICE = await r.json();
+        renderPrice();
+      } catch (_) {}
+    }
+
+    async function detectCountryLanguage() {
+      const saved = localStorage.getItem('pixelmaps-language');
+      if (saved && LANGS[saved]) return saved;
+
+      try {
+        const r = await fetch('/cdn-cgi/trace', { cache: 'no-store' });
+        const text = await r.text();
+        const m = text.match(/^loc=([A-Z]{2})$/m);
+        const cc = m ? m[1] : '';
+        window.PM_CC = cc;
+        const countryMap = {
+          // Deutsch
+          DE:'de', AT:'de', CH:'de', LI:'de',
+          // Englisch
+          US:'en', GB:'en', CA:'en', AU:'en', NZ:'en', IE:'en',
+          SG:'en', IN:'en', PK:'en', PH:'en', MY:'en',
+          NG:'en', GH:'en', KE:'en', ZA:'en', TZ:'en', UG:'en', ZM:'en', ZW:'en', MW:'en', NA:'en', BW:'en', LS:'en', SZ:'en',
+          JM:'en', TT:'en', GY:'en', BB:'en', BS:'en', BZ:'en',
+          // Französisch
+          FR:'fr', BE:'fr', LU:'fr',
+          MC:'fr', CI:'fr', SN:'fr', CM:'fr', MA:'fr', DZ:'fr', TN:'fr', ML:'fr', BF:'fr', BJ:'fr', NE:'fr', TG:'fr', GN:'fr', CD:'fr', CG:'fr', GA:'fr', RW:'fr', BI:'fr', CF:'fr', MG:'fr', HT:'fr',
+          // Spanisch
+          ES:'es', MX:'es', AR:'es', CL:'es', CO:'es',
+          PE:'es', VE:'es', EC:'es', GT:'es', CU:'es', DO:'es', BO:'es', HN:'es', PY:'es', SV:'es', NI:'es', CR:'es', PA:'es', PR:'es', UY:'es', GQ:'es',
+          // Italienisch
+          IT:'it', SM:'it',
+          // Niederländisch
+          NL:'nl',
+          // Polnisch
+          PL:'pl',
+          // Portugiesisch
+          PT:'pt', BR:'pt', AO:'pt', MZ:'pt', CV:'pt', GW:'pt', ST:'pt', TL:'pt',
+          // Chinesisch
+          CN:'zh', HK:'zh', MO:'zh', TW:'zh',
+          // Hindi
+          IN:'hi', NP:'hi', LK:'hi', BD:'hi'
+        };
+        if (countryMap[cc]) return countryMap[cc];
+      } catch (_) {}
+
+      const browser = (navigator.language || 'en').slice(0,2).toLowerCase();
+      return LANGS[browser] ? browser : 'en';
+    }
+
+    function handleReturn() {
+      const qs = new URLSearchParams(location.search);
+      const banner = document.getElementById('return-banner');
+
+      if (qs.get('success') === '1') {
+        history.replaceState({}, '', location.pathname);
+        const sessionId = (qs.get('session_id') || '').trim();
+        const pixelParam = Number(qs.get('pixel'));
+        const lastPixelId = Number(localStorage.getItem('pixelmaps_last_purchase_pixel_id'));
+        const pixelId = (Number.isInteger(pixelParam) && pixelParam >= 0)
+          ? pixelParam
+          : (Number.isInteger(lastPixelId) ? lastPixelId : null);
+        const tok = qs.get('tok') || localStorage.getItem('pixelmaps_last_purchase_token') || '';
+
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = '<div class="spinner"></div><span>' + (T[window.PM_LANG || 'en']?.confirming || 'Zahlung wird bestätigt — die Urkunde wird geladen…') + '</span>';
+        }
+
+        if (pixelId !== null) {
+          localStorage.setItem('pixelmaps_last_purchase_pixel_id', String(pixelId));
+          if (tok) localStorage.setItem('pixelmaps_last_purchase_token', tok);
+        }
+        const certUrl = (pixelId !== null)
+          ? '/api/certificate?id=' + encodeURIComponent(pixelId) + '&tok=' + encodeURIComponent(tok)
+          : null;
+        const goCert = () => {
+          if (certUrl) window.location.href = certUrl;
+          else if (banner) banner.innerHTML = '<span>' + (T[window.PM_LANG || 'en']?.paidThanks || 'Zahlung erhalten — vielen Dank!') + '</span>';
+        };
+        const verify = (attempt) => {
+          if (!sessionId) { goCert(); return; }
+          fetch('/api/checkout/verify?session_id=' + encodeURIComponent(sessionId), { cache: 'no-store' })
+            .then(r => r.json().catch(() => ({})))
+            .then(d => {
+              if (d && d.paid) { goCert(); return; }
+              if (attempt < 10) setTimeout(() => verify(attempt + 1), 1500);
+              else goCert();
+            })
+            .catch(() => {
+              if (attempt < 10) setTimeout(() => verify(attempt + 1), 1500);
+              else goCert();
+            });
+        };
+        setTimeout(() => verify(1), 2000);
+      } else if (qs.get('cancelled') === '1') {
+        history.replaceState({}, '', location.pathname);
+        if (banner) {
+          banner.classList.remove('hidden');
+          banner.innerHTML = '<span>Checkout abgebrochen. Dein Pixel ist noch verfügbar.</span>';
+          setTimeout(() => banner.classList.add('hidden'), 6000);
+        }
+      }
+    }
+
+    const languageButton = document.getElementById('language-button');
+    const languageMenu = document.getElementById('language-menu');
+    languageButton.addEventListener('click', () => languageMenu.classList.toggle('hidden'));
+    document.querySelectorAll('.language-option').forEach(btn => {
+      btn.addEventListener('click', () => {
+        applyLanguage(btn.dataset.lang);
+        languageMenu.classList.add('hidden');
+      });
+    });
+    document.addEventListener('click', e => {
+      if (!languageButton.contains(e.target) && !languageMenu.contains(e.target)) languageMenu.classList.add('hidden');
+    });
+
+    const sidePanel = document.getElementById('side-panel');
+    const panelToggle = document.getElementById('panel-toggle');
+    const panelIcon = document.getElementById('panel-toggle-icon');
+    if (sidePanel && panelToggle) {
+      if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+        sidePanel.classList.add('minimized');
+        if (panelIcon) {
+          panelIcon.setAttribute('data-lucide', 'chevron-down');
+          lucide.createIcons();
+        }
+      }
+      panelToggle.addEventListener('click', () => {
+        const minimized = sidePanel.classList.toggle('minimized');
+        if (panelIcon) {
+          panelIcon.setAttribute('data-lucide', minimized ? 'chevron-down' : 'chevron-up');
+          lucide.createIcons();
+        }
+      });
+    }
+
+    detectCountryLanguage().then(lang => {
+      applyLanguage(lang);
+      refreshPrice();
+    });
+    loadSoldPixels();
+    handleReturn();
+    initRecentTicker();
+    if (window.PM_SHARE_PIXEL_ID !== undefined && window.PM_SHARE_PIXEL_ID !== null) {
+      handleSharePixel(window.PM_SHARE_PIXEL_ID);
+    }
+  </script>
+</body>
+</html>
