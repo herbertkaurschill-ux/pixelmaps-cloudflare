@@ -203,7 +203,7 @@
 
       <div class="bg-slate-900/80 border border-slate-800 px-2.5 py-1 md:px-3 md:py-1.5 rounded-full text-xs">
         <span id="sold-count" class="font-mono text-white font-semibold">0</span>
-        <span class="text-slate-500 text-[10px] md:text-xs ml-0.5">gesichert</span>
+        <span id="sold-label" class="text-slate-500 text-[10px] md:text-xs ml-0.5">gesichert</span>
       </div>
     </div>
   </header>
@@ -267,6 +267,14 @@
           <span>⚑</span>
           <span data-i18n="notice">Gemeinsamer Weltrekordversuch – die Anerkennung wird angestrebt, ist aber noch nicht offiziell bestätigt.</span>
         </div>
+
+        <div class="hidden md:flex flex-col items-center gap-2 pt-1">
+          <a href="https://www.youtube.com/@GansGenau" target="_blank" rel="noopener"
+            class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-300 hover:text-emerald-400 transition">
+            <i data-lucide="play" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span data-i18n="ytCta">Mehr auf YouTube</span>
+          </a>
+        </div>
       </div>
 
       <div class="space-y-2 mt-2 md:mt-0 pt-2 md:pt-0">
@@ -293,6 +301,15 @@
             <div id="milestone-bar" class="h-full rounded-full bg-emerald-400 transition-all duration-700" style="width:0%"></div>
           </div>
           <div class="text-slate-500 text-[10px]"><span id="milestone-remaining"></span> <span data-i18n="remainingLabel">noch frei</span></div>
+        </div>
+
+        <div id="country-race" class="hidden bg-slate-950/60 p-2.5 md:p-3 rounded-xl border border-slate-800 text-[11px] md:text-xs space-y-1.5">
+          <div class="flex justify-between items-center">
+            <span id="race-title" class="text-slate-500">Länder-Rennen</span>
+            <span id="race-total" class="font-mono text-emerald-400 font-bold"></span>
+          </div>
+          <div id="race-list" class="space-y-1"></div>
+          <div id="race-empty" class="text-slate-400 hidden"></div>
         </div>
       </div>
     </aside>
@@ -403,7 +420,7 @@
   <div id="sold-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-4">
     <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-5 md:p-6 max-w-sm w-full shadow-2xl max-h-[90vh] overflow-y-auto">
       <div class="flex justify-between items-center">
-        <h3 class="text-base md:text-lg font-bold text-white" data-i18n="soldTitle">Pixel bereits gesichert</h3>
+        <h3 id="sold-title" class="text-base md:text-lg font-bold text-white" data-i18n="soldTitle">Pixel bereits gesichert</h3>
         <button onclick="closeSoldModal()" class="text-slate-400 hover:text-white text-2xl">&times;</button>
       </div>
       <div class="mt-3 md:mt-4 space-y-2 text-xs md:text-sm">
@@ -412,11 +429,19 @@
         <div id="sold-id" class="font-mono text-xs text-slate-500"></div>
         <div id="sold-message" class="hidden mt-3 p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-slate-300 text-xs md:text-sm whitespace-pre-wrap"></div>
       </div>
-      <button id="sold-share-btn" onclick="sharePixel()"
-        class="mt-3 w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2 md:py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
-        🔗 Pixel-Link kopieren
-      </button>
-      <div id="share-copied" class="hidden text-center text-emerald-400 text-xs mt-2">🔗 Link kopiert!</div>
+      <a id="sold-cert-btn" href="#" class="hidden mt-3 w-full text-center bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
+        <span data-i18n="viewCert">Urkunde ansehen</span>
+      </a>
+      <div class="mt-3 md:mt-4">
+        <div id="sold-share-label" class="text-[11px] md:text-xs text-slate-400 mb-1.5" data-i18n="shareLabel">Teile deinen Pixel:</div>
+        <div class="grid grid-cols-4 gap-2">
+          <button onclick="shareToX()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 rounded-xl text-[11px] md:text-xs min-h-[40px]">X</button>
+          <button onclick="shareToWhatsApp()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 rounded-xl text-[10px] md:text-xs min-h-[40px]">WhatsApp</button>
+          <button onclick="shareToTelegram()" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2 rounded-xl text-[10px] md:text-xs min-h-[40px]">Telegram</button>
+          <button id="sold-copy-btn" onclick="shareNative()" class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2 rounded-xl text-[11px] md:text-xs min-h-[40px]" data-i18n="copyLink">🔗 Link</button>
+        </div>
+        <div id="share-copied" class="hidden text-center text-emerald-400 text-xs mt-2">🔗 Link kopiert!</div>
+      </div>
       <button onclick="closeSoldModal()" class="mt-4 md:mt-5 w-full border border-slate-700 hover:border-emerald-500/50 py-2 md:py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
         <span data-i18n="otherPlace">Andere Stelle auswählen</span>
       </button>
@@ -570,7 +595,23 @@
         const stats = await fetch('/api/stats').then(r => r.ok ? r.json() : null).catch(() => null);
         if (stats) {
           const soldN = Number(stats.sold || 0);
-          document.getElementById('sold-count').textContent = soldN.toLocaleString('de-DE');
+          const countEl = document.getElementById('sold-count');
+          const labelEl = document.getElementById('sold-label');
+          if (soldN === 0) {
+            // Ehrlich: noch kein Verkauf -> nicht "0 gesichert" zeigen.
+            const BE_FIRST = {
+              de:'Sei die/der Erste!', en:'Be the first!', fr:'Soyez le premier !', es:'¡Sé el primero!',
+              it:'Sii il primo!', nl:'Wees de eerste!', pl:'Bądź pierwszy!', pt:'Seja o primeiro!',
+              tr:'İlk sen ol!', ru:'Будь первым!', hi:'पहले बनें!', zh:'成为第一！'
+            };
+            countEl.textContent = BE_FIRST[(window.PM_LANG||'en')] || 'Be the first!';
+            countEl.classList.remove('font-mono','text-white');
+            countEl.classList.add('text-emerald-400');
+            if (labelEl) labelEl.style.display = 'none';
+          } else {
+            countEl.textContent = soldN.toLocaleString('de-DE');
+            if (labelEl) labelEl.style.display = '';
+          }
           updateMilestone(soldN, Number(stats.remaining || 0));
         }
       } catch (err) {
@@ -793,6 +834,10 @@
       const modal = document.getElementById('sold-modal');
       modal.classList.add('hidden');
       modal.style.display = 'none';
+      const certBtn = document.getElementById('sold-cert-btn');
+      if (certBtn) certBtn.classList.add('hidden');
+      const titleEl = document.getElementById('sold-title');
+      if (titleEl) titleEl.textContent = (T[window.PM_LANG] || T.en).soldTitle || 'Pixel bereits gesichert';
     }
 
     let currentSharePixelId = null;
@@ -801,6 +846,81 @@
 
     function setSharePixelId(id) {
       currentSharePixelId = id;
+    }
+
+    const SHARE_I18N = {
+      de:{ title:'Ich habe meinen Pixel auf der Weltkarte gesichert! 🌍', text:'Sichere dir auch einen Pixel Nr. {n} – One World, One Billion Pixels.' },
+      en:{ title:'I secured my pixel on the world map! 🌍', text:'Grab your own pixel #{n} – One World, One Billion Pixels.' },
+      fr:{ title:'J’ai sécurisé mon pixel sur la carte du monde ! 🌍', text:'Réserve ton pixel n° {n} – One World, One Billion Pixels.' },
+      es:{ title:'¡Aseguré mi píxel en el mapa mundial! 🌍', text:'Consigue tu píxel n.º {n} – One World, One Billion Pixels.' },
+      it:{ title:'Ho assicurato il mio pixel sulla mappa del mondo! 🌍', text:'Assicurati il tuo pixel n. {n} – One World, One Billion Pixels.' },
+      nl:{ title:'Ik heb mijn pixel op de wereldkaart vastgelegd! 🌍', text:'Leg jouw pixel #{n} vast – One World, One Billion Pixels.' },
+      pl:{ title:'Zabezpieczyłem swój piksel na mapie świata! 🌍', text:'Zajmij swój piksel #{n} – One World, One Billion Pixels.' },
+      pt:{ title:'Garanti o meu pixel no mapa-múndi! 🌍', text:'Garanta o seu pixel #{n} – One World, One Billion Pixels.' },
+      tr:{ title:'Dünya haritasındaki pikselimi güvence altına aldım! 🌍', text:'Sen de {n} numaralı pikseli al – One World, One Billion Pixels.' },
+      ru:{ title:'Я закрепил свой пиксель на карте мира! 🌍', text:'Забронируй свой пиксель №{n} – One World, One Billion Pixels.' },
+      hi:{ title:'मैंने विश्व मानचित्र पर अपना पिक्सेल सुरक्षित किया! 🌍', text:'अपना पिक्सेल #{n} पाएँ – One World, One Billion Pixels.' },
+      zh:{ title:'我已在地球地图上锁定我的像素！🌍', text:'抢占属于你的像素 #{n} – One World, One Billion Pixels.' }
+    };
+
+    function pixelShareUrl(id) { return location.origin + '/p/' + id; }
+    function currentShareCopy() {
+      const s = SHARE_I18N[window.PM_LANG] || SHARE_I18N.en;
+      const url = currentSharePixelId != null ? pixelShareUrl(currentSharePixelId) : location.origin;
+      return { text: s.text.replace('{n}', currentSharePixelId != null ? currentSharePixelId : ''), url };
+    }
+    function shareToX() {
+      if (currentSharePixelId === null) return;
+      const c = currentShareCopy();
+      window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(c.text) + '&url=' + encodeURIComponent(c.url), '_blank', 'noopener');
+    }
+    function shareToWhatsApp() {
+      if (currentSharePixelId === null) return;
+      const c = currentShareCopy();
+      window.open('https://wa.me/?text=' + encodeURIComponent(c.text + ' ' + c.url), '_blank', 'noopener');
+    }
+    function shareToTelegram() {
+      if (currentSharePixelId === null) return;
+      const c = currentShareCopy();
+      window.open('https://t.me/share/url?url=' + encodeURIComponent(c.url) + '&text=' + encodeURIComponent(c.text), '_blank', 'noopener');
+    }
+    async function shareNative() {
+      const c = currentShareCopy();
+      const el = document.getElementById('share-copied');
+      if (navigator.share) {
+        try { await navigator.share({ text: c.text, url: c.url }); return; } catch (_) {}
+      }
+      try {
+        await navigator.clipboard.writeText(c.text + ' ' + c.url);
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = c.text + ' ' + c.url;
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      if (el) { el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 2500); }
+    }
+
+    function showPurchaseSuccess(pixelId, certUrl) {
+      currentSharePixelId = pixelId;
+      const titleEl = document.getElementById('sold-title');
+      const T2 = T[window.PM_LANG] || T.en;
+      if (titleEl) titleEl.textContent = T2.thanksTitle || 'Danke für deinen Pixel! 🌍';
+      const placeEl = document.getElementById('sold-place');
+      if (placeEl) placeEl.textContent = T2.soldSuccess || 'Dein Pixel ist jetzt Teil der Weltkarte.';
+      const idEl = document.getElementById('sold-id');
+      if (idEl) idEl.textContent = 'Pixel #' + pixelId;
+      const ownerEl = document.getElementById('sold-owner');
+      if (ownerEl) ownerEl.textContent = '';
+      const msgEl = document.getElementById('sold-message');
+      if (msgEl) { msgEl.textContent = ''; msgEl.classList.add('hidden'); }
+      const certBtn = document.getElementById('sold-cert-btn');
+      if (certBtn) {
+        if (certUrl) { certBtn.href = certUrl; certBtn.classList.remove('hidden'); }
+        else certBtn.classList.add('hidden');
+      }
+      const modal = document.getElementById('sold-modal');
+      modal.classList.remove('hidden');
+      modal.style.display = 'flex';
     }
 
     async function sharePixel() {
@@ -859,6 +979,11 @@
             soldMessageEl.textContent = '';
             soldMessageEl.classList.add('hidden');
           }
+
+          const stTitle = document.getElementById('sold-title');
+          if (stTitle) stTitle.textContent = (T[window.PM_LANG] || T.en).soldTitle || 'Pixel bereits gesichert';
+          const stCert = document.getElementById('sold-cert-btn');
+          if (stCert) stCert.classList.add('hidden');
 
           document.getElementById('sold-modal').classList.remove('hidden');
           document.getElementById('sold-modal').style.display = 'flex';
@@ -1025,6 +1150,9 @@
         messageHelp:'Wird beim Pixel angezeigt.', emojiLabel:'Pixel-Emoji (optional)', recentSold:'wurde gesichert', milestoneLabel:'Nächster Meilenstein', remainingLabel:'noch frei',
         stripeButton:'Weiter zu Stripe · 1,00 €',
         soldTitle:'Pixel bereits gesichert',
+        viewCert:'Urkunde ansehen', shareLabel:'Teile deinen Pixel:', copyLink:'🔗 Link',
+        thanksTitle:'Danke für deinen Pixel! 🌍', soldSuccess:'Dein Pixel ist jetzt Teil der Weltkarte.',
+        ytCta:'Mehr auf YouTube',
         otherPlace:'Andere Stelle auswählen',
         saved:'gesichert', available:'verfügbar',
         check:'Prüfe Pixel #',
@@ -1064,6 +1192,9 @@
         messageHelp:'Shown with your pixel.', emojiLabel:'Pixel emoji (optional)', recentSold:'was secured', milestoneLabel:'Next milestone', remainingLabel:'remaining',
         stripeButton:'Continue to Stripe · €1.00',
         soldTitle:'Pixel already secured',
+        viewCert:'View certificate', shareLabel:'Share your pixel:', copyLink:'🔗 Link',
+        thanksTitle:'Thanks for your pixel! 🌍', soldSuccess:'Your pixel is now part of the world map.',
+        ytCta:'More on YouTube',
         otherPlace:'Choose another place',
         saved:'secured', available:'available',
         check:'Checking pixel #',
@@ -1342,6 +1473,63 @@ function applyLanguage(lang) {
       if (rem) rem.textContent = Number(remaining || 0).toLocaleString('de-DE');
     }
 
+    const RACE_I18N = {
+      de:{ title:'Länder-Rennen', empty:'Noch kein Land auf dem Brett – sei das erste! 🌍', pixel:'Pixel', pixels:'Pixel' },
+      en:{ title:'Country race', empty:'No country on the board yet – be the first! 🌍', pixel:'pixel', pixels:'pixels' },
+      fr:{ title:'Course des pays', empty:'Aucun pays encore – soyez le premier ! 🌍', pixel:'pixel', pixels:'pixels' },
+      es:{ title:'Carrera de países', empty:'Aún no hay países – ¡sé el primero! 🌍', pixel:'píxel', pixels:'píxeles' },
+      it:{ title:'Gara tra paesi', empty:'Nessun paese ancora – sii il primo! 🌍', pixel:'pixel', pixels:'pixel' },
+      nl:{ title:'Landenrace', empty:'Nog geen land op het bord – wees de eerste! 🌍', pixel:'pixel', pixels:'pixels' },
+      pl:{ title:'Wyścig krajów', empty:'Jeszcze żaden kraj – bądź pierwszy! 🌍', pixel:'piksel', pixels:'piksele' },
+      pt:{ title:'Corrida de países', empty:'Ainda nenhum país – seja o primeiro! 🌍', pixel:'pixel', pixels:'pixels' },
+      tr:{ title:'Ülke yarışı', empty:'Henüz ülke yok – ilk sen ol! 🌍', pixel:'pixel', pixels:'pixel' },
+      ru:{ title:'Гонка стран', empty:'Пока нет стран – будь первым! 🌍', pixel:'пиксель', pixels:'пикселей' },
+      hi:{ title:'देशों की दौड़', empty:'अभी कोई देश नहीं – पहले बनें! 🌍', pixel:'पिक्सेल', pixels:'पिक्सेल' },
+      zh:{ title:'国家竞赛', empty:'还没有国家上榜——成为第一个！🌍', pixel:'像素', pixels:'像素' }
+    };
+
+    function ccFlag(cc) {
+      if (!cc || String(cc).length !== 2) return '🌐';
+      try { return String.fromCodePoint(...[...String(cc).toUpperCase()].map(c => 127397 + c.charCodeAt(0))); }
+      catch (_) { return '🌐'; }
+    }
+
+    async function loadLeaderboard() {
+      const box = document.getElementById('country-race');
+      if (!box) return;
+      const list = document.getElementById('race-list');
+      const empty = document.getElementById('race-empty');
+      const totalEl = document.getElementById('race-total');
+      const titleEl = document.getElementById('race-title');
+      const i = RACE_I18N[window.PM_LANG] || RACE_I18N.en;
+      if (titleEl) titleEl.textContent = i.title;
+      try {
+        const r = await fetch('/api/leaderboard', { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json();
+        const rows = (d.countries || []).slice(0, 5);
+        box.classList.remove('hidden');
+        if (!rows.length) {
+          if (totalEl) totalEl.textContent = '';
+          if (list) list.innerHTML = '';
+          if (empty) { empty.classList.remove('hidden'); empty.textContent = i.empty; }
+          return;
+        }
+        const total = Number(d.total || 0);
+        if (totalEl) totalEl.textContent = total.toLocaleString('de-DE') + ' ' + (total === 1 ? i.pixel : i.pixels);
+        if (empty) empty.classList.add('hidden');
+        if (list) {
+          list.innerHTML = rows.map((c, idx) => {
+            const flag = ccFlag(c.country);
+            const name = (c.country || '??');
+            return '<div class="flex justify-between items-center gap-2">'
+              + '<span class="truncate">' + (idx + 1) + '. ' + flag + ' <span class="text-slate-300">' + name + '</span></span>'
+              + '<span class="font-mono text-emerald-400">' + Number(c.count || 0).toLocaleString('de-DE') + '</span></div>';
+          }).join('');
+        }
+      } catch (_) {}
+    }
+
     async function initRecentTicker() {
       await loadRecent();
       tickRecent();
@@ -1448,8 +1636,17 @@ function applyLanguage(lang) {
           ? '/api/certificate?id=' + encodeURIComponent(pixelId) + '&tok=' + encodeURIComponent(tok)
           : null;
         const goCert = () => {
-          if (certUrl) window.location.href = certUrl;
-          else if (banner) banner.innerHTML = '<span>' + (T[window.PM_LANG || 'en']?.paidThanks || 'Zahlung erhalten — vielen Dank!') + '</span>';
+          if (pixelId !== null) {
+            // Erfolg feiern + Teilen anbieten (virale Schleife). Urkunde bleibt
+            // ueber den Button im Modal erreichbar.
+            if (banner) banner.classList.add('hidden');
+            showPurchaseSuccess(pixelId, certUrl);
+            try { trackEvent('purchase_success'); } catch (_) {}
+          } else if (certUrl) {
+            window.location.href = certUrl;
+          } else if (banner) {
+            banner.innerHTML = '<span>' + (T[window.PM_LANG || 'en']?.paidThanks || 'Zahlung erhalten — vielen Dank!') + '</span>';
+          }
         };
         const verify = (attempt) => {
           if (!sessionId) { goCert(); return; }
@@ -1493,13 +1690,9 @@ function applyLanguage(lang) {
     const panelToggle = document.getElementById('panel-toggle');
     const panelIcon = document.getElementById('panel-toggle-icon');
     if (sidePanel && panelToggle) {
-      if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
-        sidePanel.classList.add('minimized');
-        if (panelIcon) {
-          panelIcon.setAttribute('data-lucide', 'chevron-down');
-          lucide.createIcons();
-        }
-      }
+      // Panel bleibt auf Mobile standardmaessig GEOEFFNET, damit Angebot,
+      // Schritte und CTA sofort sichtbar sind (Conversion). Wer Platz will,
+      // klappt es ueber den Pfeil ein.
       panelToggle.addEventListener('click', () => {
         const minimized = sidePanel.classList.toggle('minimized');
         if (panelIcon) {
@@ -1509,9 +1702,25 @@ function applyLanguage(lang) {
       });
     }
 
+    // SEO-Stadtseiten (/pixel-<slug>): Kontext im Panel anzeigen.
+    function showCityHint() {
+      if (!window.PM_CITY) return;
+      if (document.getElementById('city-hint')) return;
+      const el = document.createElement('div');
+      el.id = 'city-hint';
+      el.className = 'px-3 pt-2 text-[10px] md:text-xs text-slate-400';
+      el.innerHTML = '<span class="text-slate-500">Pixel in</span> <span class="text-emerald-300 font-semibold">'
+        + String(window.PM_CITY) + '</span> · sichern';
+      const panel = document.getElementById('side-panel');
+      if (panel && panel.firstChild) panel.insertBefore(el, panel.firstChild.nextSibling);
+      else if (panel) panel.appendChild(el);
+    }
+
     detectCountryLanguage().then(lang => {
       applyLanguage(lang);
       refreshPrice();
+      showCityHint();
+      loadLeaderboard();
     });
     loadSoldPixels();
     handleReturn();

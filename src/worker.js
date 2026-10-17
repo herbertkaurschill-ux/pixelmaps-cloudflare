@@ -140,6 +140,13 @@ const COUNTRY_CCY = {
 // Emerging Markets erschwinglich bleibt (>Conversion). Tiere halten den
 // Preis in stabilen Waehrungen bei vollem 1 EUR-Basispreis.
 const BASE_EUR_CENTS_DEFAULT = 100;
+// Eigen-Testkaeufe werden beim oeffentlichen Zaehler nicht mitgezaehlt,
+// damit "gesichert" ehrlich bleibt (Social Proof nur aus echten Kaeufen).
+const TEST_EMAILS = [
+  "herbertkaurschill@gmail.com",
+  "kaurschill@gmx.net",
+  "a.kaurschill@gmail.com",
+];
 const PPP_EUR_CENTS = {
   DE:100, AT:100, CH:100, LI:100, LU:100, BE:100, NL:100,
   FR:100, ES:100, IT:100, PT:100, IE:100, FI:100, GR:100,
@@ -264,6 +271,37 @@ async function getPlaceName(lat, lon, env) {
     return result;
   } catch (e) {
     console.log("Place lookup:", e.message);
+    return "";
+  }
+}
+
+// Land (ISO-3166 alpha-2) zu einer Koordinate. Eine Nominatim-Abfrage pro
+// eindeutiger Koordinate, danach ein Jahr im Cache. Basis fuer das Laender-Rennen.
+async function getCountry(lat, lon, env) {
+  const roundedLat = Number(lat).toFixed(3);
+  const roundedLon = Number(lon).toFixed(3);
+  const cacheKey = new Request(`https://pixelmaps-country-cache.invalid/${roundedLat}/${roundedLon}`);
+  const cache = caches.default;
+  try {
+    const cached = await cache.match(cacheKey);
+    if (cached) return await cached.text();
+  } catch (_) {}
+  const ua = env.NOMINATIM_USER_AGENT || "PixelMaps/1.0 (pixelmaps.org)";
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=3&addressdetails=1`;
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": ua, "Accept": "application/json" } });
+    if (!r.ok) return "";
+    const data = await r.json();
+    const cc = String(data?.address?.country_code || "").toUpperCase().slice(0, 2);
+    if (cc) {
+      try {
+        await cache.put(cacheKey, new Response(cc, {
+          headers: { "cache-control": "public, max-age=31536000" }
+        }));
+      } catch (_) {}
+    }
+    return cc;
+  } catch (e) {
     return "";
   }
 }
@@ -493,12 +531,15 @@ async function completePaidSession(env, s) {
     const existingPixel = await env.DB.prepare("SELECT purchase_id FROM pixels WHERE pixel_id=?").bind(pixelId).first();
     if (!existingPixel) {
       try {
+        let country = String(s.metadata?.country || "").toUpperCase().slice(0, 2);
+        if (!country) country = await getCountry(geo.lat, geo.lon, env);
         await env.DB.prepare(`
-          INSERT INTO pixels(pixel_id,lat,lon,purchase_id,display_name,website,message,emoji)
-          VALUES (?,?,?,?,?,?,?,?)
+          INSERT INTO pixels(pixel_id,lat,lon,purchase_id,display_name,website,message,emoji,country)
+          VALUES (?,?,?,?,?,?,?,?,?)
         `).bind(
           pixelId,geo.lat,geo.lon,purchaseId,
-          p.display_name,p.website,s.metadata?.message || "",s.metadata?.emoji || ""
+          p.display_name,p.website,s.metadata?.message || "",s.metadata?.emoji || "",
+          country || null
         ).run();
       } catch (e) {
         await refundLosingPurchase(env, s);
@@ -637,9 +678,38 @@ async function router(request, env) {
   await ensureSchema(env);
 
   if (url.pathname === "/api/stats") {
-    const r = await env.DB.prepare("SELECT COUNT(*) AS sold FROM pixels").first();
-    const sold = Number(r?.sold||0);
+    const ph = TEST_EMAILS.map(() => "?").join(",");
+    const r = await env.DB.prepare(
+      `SELECT COUNT(*) AS sold FROM pixels p
+         JOIN purchases pu ON pu.id = p.purchase_id
+        WHERE LOWER(pu.email) NOT IN (${ph})`
+    ).bind(...TEST_EMAILS).first().catch(() => null);
+    const sold = Number(r?.sold || 0);
     return withCors(json({total:TOTAL,sold,remaining:TOTAL-sold}));
+  }
+
+  // Laender-Rennen: gesicherte Pixel je Land (ohne Eigen-Tests).
+  if (url.pathname === "/api/leaderboard") {
+    try {
+      const ph = TEST_EMAILS.map(() => "?").join(",");
+      const rows = await env.DB.prepare(
+        `SELECT UPPER(p.country) AS cc, COUNT(*) AS n
+           FROM pixels p
+           JOIN purchases pu ON pu.id = p.purchase_id
+          WHERE pu.status = 'paid'
+            AND p.country IS NOT NULL AND LENGTH(p.country) = 2
+            AND LOWER(pu.email) NOT IN (${ph})
+          GROUP BY UPPER(p.country)
+          ORDER BY n DESC, cc ASC
+          LIMIT 50`
+      ).bind(...TEST_EMAILS).all();
+      const countries = (rows?.results || []).map(r => ({ cc: String(r.cc||""), n: Number(r.n||0) }));
+      const total = countries.reduce((a, c) => a + c.n, 0);
+      return withCors(json({ total, countries }));
+    } catch (e) {
+      console.log("leaderboard:", e.message);
+      return withCors(json({ total: 0, countries: [] }));
+    }
   }
 
   if (url.pathname === "/api/track") {
@@ -1108,6 +1178,40 @@ async function router(request, env) {
       return res;
     }
   }
+  // SEO-Städteseiten: /pixel-<slug> (z.B. /pixel-berlin). Wir liefern die
+  // Startseite aus und ersetzen Titel/Description/Canonical/OG durch
+  // stadt-spezifische Werte (Longtail-Traffic, kein Duplicate Content).
+  const cityMatch = url.pathname.match(/^\/pixel-([a-z0-9][a-z0-9-]{1,60})$/i);
+  if (cityMatch) {
+    const slug = cityMatch[1].toLowerCase();
+    const display = slug
+      .split("-")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ");
+    const res = await env.ASSETS.fetch(new URL("/", url));
+    if (res.ok) {
+      const html = await res.text();
+      const meta = buildCityMeta(env, slug, display);
+      let out = html;
+      out = out.replace(/<title>[\s\S]*?<\/title>/, '<title>' + meta.titleEsc + '</title>');
+      out = out.replace(/<meta name="description" content="[^"]*">/, '<meta name="description" content="' + meta.descEsc + '">');
+      out = out.replace(/<link rel="canonical" href="[^"]*">/, '<link rel="canonical" href="' + meta.url + '">');
+      out = out.replace(/<meta property="og:title" content="[^"]*">/, '<meta property="og:title" content="' + meta.titleEsc + '">');
+      out = out.replace(/<meta property="og:description" content="[^"]*">/, '<meta property="og:description" content="' + meta.descEsc + '">');
+      out = out.replace(/<meta property="og:url" content="[^"]*">/, '<meta property="og:url" content="' + meta.url + '">');
+      out = out.replace(/<meta name="twitter:title" content="[^"]*">/, '<meta name="twitter:title" content="' + meta.titleEsc + '">');
+      out = out.replace(/<meta name="twitter:description" content="[^"]*">/, '<meta name="twitter:description" content="' + meta.descEsc + '">');
+      const cityScript = '<script>window.PM_CITY = ' + JSON.stringify(display) + '; window.PM_CITY_SLUG = ' + JSON.stringify(slug) + ';</script>';
+      out = out.replace("</head>", cityScript + "</head>");
+      return new Response(out, {
+        status: 200,
+        headers: {"content-type":"text/html; charset=utf-8", "x-robots-tag":"index,follow"}
+      });
+    }
+    return res;
+  }
+
+  if (url.pathname === "/sitemap.xml") return sitemapXml(request, env);
 
   if (url.pathname.startsWith("/clips/")) {
     if (request.method === "GET") trackView(env, "clip", url.pathname);
@@ -1140,6 +1244,153 @@ function withAbAssignment(url, request, res) {
   const out = new Response(res.body, res);
   out.headers.set("Set-Cookie", `pm_ab=${group}; Path=/; Max-Age=31536000; SameSite=Lax`);
   return out;
+}
+
+// ── SEO: robots.txt + sitemap.xml ───────────────────────────────────────
+// Statische Seiten werden mit their actual lastmod aus ASSETS gelesen, die
+// Pixel-Share-Seiten aus der DB. So bleiben die Timestamps auch nach einem
+// Content-Upload korrekt, ohne dass hier eine Liste hart kodiert wird.
+function siteBase(env) {
+  return String(env.SITE_URL || "https://pixelmaps.org").replace(/\/+$/, "");
+}
+
+function robotsTxt(env) {
+  const base = siteBase(env);
+  const body = [
+    "User-agent: *",
+    "Allow: /",
+    // Preise/checkout duerfen gecrawlt werden, die Kaufbestaetigung nicht:
+    "Disallow: /api/checkout",
+    "Disallow: /api/pixel",
+    "Disallow: /api/moderation/",
+    // /p/<id> ist bewusst crawlbar: die Share-Seiten stehen in der Sitemap und
+    // setzen per Canonical auf "/", damit Google sie nicht als Duplikat wertet.
+    "",
+    // KI-Crawler explizit erlauben (Inhalt ist oeffentlich vermarktet):
+    "User-agent: GPTBot",
+    "Allow: /",
+    "",
+    "User-agent: ClaudeBot",
+    "Allow: /",
+    "",
+    "User-agent: PerplexityBot",
+    "Allow: /",
+    "",
+    `Sitemap: ${base}/sitemap.xml`,
+    ""
+  ].join("\n");
+  return new Response(body, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+      "x-robots-tag": "noindex"
+    }
+  });
+}
+
+const SITEMAP_STATIC = [
+  ["/", "1.0", "weekly"]
+];
+
+const SITEMAP_I18N = [
+  // [suffix, de-path, en-path, hi-path]
+  ["/about", "/ueber", "/en/about", "/hi/about"],
+  ["/impressum", "/impressum", "/en/impressum", "/hi/impressum"],
+  ["/privacy", "/datenschutz", "/en/privacy", "/hi/privacy"],
+  ["/terms", "/agb", "/en/terms", "/hi/terms"]
+];
+
+async function assetLastmod(env, path) {
+  try {
+    const res = await env.ASSETS.fetch(new Request(new URL(path, env.SITE_URL || "https://pixelmaps.org"), { method: "HEAD" }));
+    const lm = res.headers.get("last-modified");
+    if (lm) return new Date(lm).toISOString().slice(0, 10);
+  } catch (_) {}
+  return utcDay();
+}
+
+const xmlEsc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+async function sitemapXml(request, env) {
+  const base = siteBase(env);
+  const urls = [];
+
+  for (const [path, prio, freq] of SITEMAP_STATIC) {
+    urls.push({ loc: base + path, lastmod: await assetLastmod(env, path), prio, freq,
+                alts: [] });
+  }
+
+  // Sprachvarianten: /ueber <-> /en/about <-> /hi/about usw.
+  for (const [suffix, ger, eng, hi] of SITEMAP_I18N) {
+    const alts = [
+      { hreflang: "de", href: base + ger },
+      { hreflang: "en", href: base + eng },
+      { hreflang: "hi", href: base + hi },
+      { hreflang: "x-default", href: base + ger }
+    ];
+    for (const p of [ger, eng, hi]) {
+      // Rechtstexte (Impressum/Datenschutz/AGB) sind rein vertrauensbildend und
+      // sollen nicht um Content-Seiten ranken. About/FAQ traegt Inhalt.
+      // Der Suffix entscheidet das — nicht der Pfad, sonst rutschen die
+      // deutschen Varianten (/datenschutz, /agb) durch das Raster.
+      const legal = suffix !== "/about";
+      urls.push({
+        loc: base + p,
+        lastmod: await assetLastmod(env, p),
+        prio: legal ? "0.3" : (p === ger ? "0.7" : "0.6"),
+        freq: legal ? "yearly" : "monthly",
+        alts
+      });
+    }
+  }
+
+  
+
+  // SEO-Stadtseiten fuer konvertierende Longtail-Suchen
+  try {
+    for (const c of ['berlin','paris','london','madrid','rome','new-york','tokyo','mumbai','delhi','shanghai','sao-paulo','moscow','amsterdam','barcelona','singapore','dubai','istanbul','munich','hamburg','vienna']) {
+      const slug = c;
+      urls.push({ loc: `${base}/pixel-` + slug, lastmod: utcDay(), prio: "0.5", freq: "weekly", alts: [] });
+    }
+  } catch (_) {}
+
+  // Gekaufte Pixel als eigene Share-Seiten (/p/<id>) — die einzige Stelle,
+  // an der organisches Landing-Geo-Signal entsteht.
+  try {
+    // Nur bezahlte, freigegebene Pixel. moderation_status nutzt 'ok'/'flagged',
+    // nicht 'approved' — deshalb hier explizit beide Bedingungen.
+    const rows = await env.DB.prepare(`
+      SELECT p.pixel_id FROM pixels p
+      JOIN purchases pu ON pu.id = p.purchase_id
+      WHERE pu.status = 'paid' AND p.moderation_status = 'ok'
+      ORDER BY p.pixel_id DESC LIMIT 500
+    `).all();
+    for (const r of (rows?.results || [])) {
+      urls.push({ loc: `${base}/p/${r.pixel_id}`, lastmod: utcDay(), prio: "0.4", freq: "monthly", alts: [] });
+    }
+  } catch (_) {
+    // D1 nicht verfuegbar: Sitemap liefert trotzdem die statischen Seiten.
+  }
+
+  const body = `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n` +
+    urls.map(u => {
+      let s = `  <url>\n    <loc>${xmlEsc(u.loc)}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.freq}</changefreq>\n    <priority>${u.prio}</priority>`;
+      if (u.alts && u.alts.length) {
+        s += "\n" + u.alts.map(a =>
+          `    <xhtml:link rel="alternate" hreflang="${xmlEsc(a.hreflang)}" href="${xmlEsc(a.href)}"/>`).join("\n");
+      }
+      return s + "\n  </url>";
+    }).join("\n") +
+    `\n</urlset>\n`;
+
+  return new Response(body, {
+    headers: {
+      "content-type": "application/xml; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+      "x-robots-tag": "noindex"
+    }
+  });
 }
 
 async function serveRange(request, url, env) {
@@ -1214,6 +1465,17 @@ function buildOgTags(base, id, name, emoji, sold) {
     ""
   ].join("\n    ");
 }
+
+
+function buildCityMeta(env, slug, display) {
+  const e = (x) => String(x ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  const base = String(env.SITE_URL || "https://pixelmaps.org").replace(/\/+$/, "");
+  const title = "Pixel in " + display + " kaufen · PixelMaps – Weltkarte aus 1 Milliarde Pixeln";
+  const desc  = "Sichere jetzt deinen eigenen Pixel in " + display + " auf der PixelMaps-Weltkarte aus einer Milliarde geografischer Pixeln – für 1 €, inklusive Zertifikat.";
+  const url   = base + "/pixel-" + slug;
+  return { title, desc, url, titleEsc: e(title), descEsc: e(desc) };
+}
+
 
 async function createCertificatePdf({ pixelId, lat, lon, placeName, displayName, certificateNo }) {
   const pdfDoc = await PDFDocument.create();

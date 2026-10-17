@@ -1,0 +1,13 @@
+{
+  "instances": [
+    {
+      "prompt": "A dark world map seen from high above, glowing multi-coloured pixels rapidly spreading outward across the continents like fireflies of light, each pixel a small luminous point. The spreading light visualises worldwide growth and community participation. Futuristic holographic style, smooth time-lapse motion. Slow camera push in. Cinematic, high contrast, deep blues and blacks with vivid accent colours. No text, no words, no letters, no captions, no user interface."
+    }
+  ],
+  "parameters": {
+    "aspectRatio": "16:9",
+    "durationSeconds": 8,
+    "resolution": "1080p",
+    "negativePrompt": "text, words, letters, captions, subtitles, watermark, logo, user interface, distorted continents, low resolution, blurry"
+  }
+}

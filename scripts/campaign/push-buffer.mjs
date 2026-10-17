@@ -148,8 +148,92 @@ async function replace() {
   console.log(`Fertig – neu geplant: ${created} Posts. State: ${STATE}`);
 }
 
-const cmd = process.argv[2] || "status";
+// ── swap: nur die ZUKUNFTIG geplanten Posts ersetzen ────────────────────
+// "replace" loescht alles und plant alle Videos neu. Das ist hier zu viel:
+// es wuerde bereits ueberfaellige (eingereichte) Posts mitloeschen und weit
+// ueber dem Free-Limit von 10 scheduled Posts pro Kanal landen.
+//
+//   node scripts/campaign/push-buffer.mjs swap              # Dry-Run
+//   node scripts/campaign/push-buffer.mjs swap --commit     # ausfuehren
+const CONCEPT_IDS = (process.env.SELECT || "c1-proof-en,c5-dialog-en")
+  .split(",").map((x) => x.trim()).filter(Boolean);
+
+async function swap() {
+  const commit = process.argv.includes("--commit");
+  const rows = await fetchPosts();
+  const now = Date.now();
+  const sched = rows.filter((r) => r.status === "scheduled");
+  const past = sched.filter((r) => new Date(r.dueAt).getTime() <= now);
+  const future = sched.filter((r) => new Date(r.dueAt).getTime() > now);
+
+  console.log(`scheduled gesamt: ${sched.length}  bereits faellig (bleiben): ${past.length}  kuenftig (werden ersetzt): ${future.length}`);
+  for (const r of past) console.log(`  BEHALT  ${r.dueAt.slice(0,16)}  ${r.channelId}  ${r.id}`);
+  for (const r of future) console.log(`  LOESCH  ${r.dueAt.slice(0,16)}  ${r.channelId}  ${r.id}`);
+
+  const list = VIDEOS.filter((v) => CONCEPT_IDS.includes(v.id));
+  const missing = CONCEPT_IDS.filter((id) => !VIDEOS.some((v) => v.id === id));
+  if (missing.length) throw new Error("nicht in videos.json: " + missing.join(", "));
+  console.log(`\nNeu einplanen (${list.length} Clips x ${PLATFORMS.length} Kanaele):`);
+  for (const v of list) {
+    console.log(`  ${v.id.padEnd(24)} ${v.title}  ->  https://pixelmaps.org/clips/campaign/${v.id}.mp4`);
+  }
+
+  // Sicherheitsnetz: vorherige Zustaende immer sichern
+  const BACKUP = STATE + ".bak";
+  fs.writeFileSync(BACKUP, fs.existsSync(STATE) ? fs.readFileSync(STATE) : "[]");
+  console.log(`\nBackup des alten State: ${BACKUP}`);
+
+  if (!commit) {
+    console.log("\nDry-Run. Nichts geaendert. Mit '--commit' ausfuehren.");
+    return;
+  }
+
+  for (const r of future) {
+    try {
+      const d = await deletePost(r.id);
+      if (d && d.id) console.log(`  DEL ok ${r.id}`);
+      else console.log(`  DEL fehlgeschlagen ${r.id}: ${(d && d.message) || "?"}`);
+    } catch (e) { console.log(`  DEL Fehler ${r.id}: ${e.message}`); }
+    await sleep(1100);
+  }
+
+  const state = { scheduled: [] };
+  let created = 0;
+  for (let p = 0; p < PLATFORMS.length; p++) {
+    const platform = PLATFORMS[p];
+    const cid = CH[platform];
+    for (let k = 0; k < list.length; k++) {
+      const v = list[k];
+      const day = isoDay(k + 1);
+      const hh = 15 + (k % 4);
+      const dueAt = `${day}T${String(hh).padStart(2, "0")}:00:00Z`;
+      const title = v.title;
+      const asset = assetFor(platform, v.id, title);
+      const input = {
+        text: `${title} · pixelmaps.org #PixelMaps`,
+        channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata,
+        schedulingType: platform === "Instagram" ? "notification" : "automatic",
+        mode: "customScheduled", dueAt, needsApproval: false
+      };
+      try {
+        const d = await createPost(input);
+        if (d && d.post) {
+          created++;
+          state.scheduled.push({ videoId: v.id, platform, postId: d.post.id, dueAt });
+          console.log(`  OK ${platform.padEnd(12)} ${dueAt.slice(0,16)} ${v.id} ${d.post.id}`);
+        } else console.log(`  FEHLER ${platform} ${v.id}: ${(d && d.message) || "?"}`);
+      } catch (e) { console.log(`  CRASH ${platform} ${v.id}: ${e.message}`); }
+      await sleep(1100);
+    }
+  }
+  state.scheduled.push(...past.map((r) => ({ videoId: "(unveraendert)", platform: "-", postId: r.id, dueAt: r.dueAt })));
+  fs.writeFileSync(STATE, JSON.stringify(state, null, 2));
+  console.log(`\nFertig. Neu geplant: ${created} Posts. State: ${STATE}`);
+}
+
+const cmd2 = process.argv[2] || "status";
 (async () => {
-  if (cmd === "replace") await replace();
+  if (cmd2 === "replace") await replace();
+  else if (cmd2 === "swap") await swap();
   else await status();
 })().catch((e) => { console.error("FATAL", e.message); process.exit(1); });

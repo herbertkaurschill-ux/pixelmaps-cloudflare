@@ -42,4 +42,4 @@ Pixelmaps.org in den Verkauf bringen + organisch wachsen lassen.
 
 ## Relevant Files
 - `/Users/up/Desktop/pixelmaps-cloudflare/` – Worker (`src/worker.js`: checkout, verify, webhook, serveRange, A/B), Frontend `public/index.html`, Video-Batch `scripts/clipmap.py`, Kampagne `scripts/campaign/{videos.json,render.js,push-buffer.mjs,.buffer-state.json}`, Clips `public/clips/{generated,campaign}/`.
-- `/Users/up/.n8n/` – Agent-config, `fill-queue.js`, `publish-day.sh`, Logs `content/review/publish-day.log`, Buffer-Queue-Topup.
+- `/Users/up/.n8n/` – Agent-config, `publish-day.sh`, Logs `content/review/publish-day.log`, Buffer-Queue-Topup. Konzept-Slot-Auffueller: `scripts/campaign/{topup.mjs,backlog.json}`, KI-Tagesclip-Fueller: `scripts/fill-queue.cjs`.

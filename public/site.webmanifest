@@ -1,0 +1,19 @@
+{
+  "name": "PixelMaps — Weltkarte aus einer Milliarde Pixeln",
+  "short_name": "PixelMaps",
+  "description": "Sichere deinen eigenen geografischen Pixel auf der Weltkarte aus einer Milliarde Pixeln.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050911",
+  "theme_color": "#6ee7b7",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

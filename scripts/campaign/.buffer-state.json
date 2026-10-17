@@ -1,130 +1,76 @@
 {
   "scheduled": [
     {
-      "videoId": "v01-en-what-if-billion",
+      "videoId": "c1-proof-en",
       "platform": "TikTok",
-      "postId": "6abadaa07889d8281c1d7aa2",
-      "dueAt": "2026-09-29T15:00:00Z"
+      "postId": "6ac152b9ad7fd83bc5ffb985",
+      "dueAt": "2026-10-04T15:00:00Z"
     },
     {
-      "videoId": "v02-en-one-euro-pixel",
+      "videoId": "c1-proof-es",
       "platform": "TikTok",
-      "postId": "6abadaa285cca6b1296fd2c1",
-      "dueAt": "2026-09-30T16:00:00Z"
+      "postId": "6ac152bdad7fd83bc5ffb9fe",
+      "dueAt": "2026-10-05T16:00:00Z"
     },
     {
-      "videoId": "v03-en-buy-your-hometown",
+      "videoId": "c5-dialog-en",
       "platform": "TikTok",
-      "postId": "6abadaa4c5484f9414a0ce69",
-      "dueAt": "2026-10-01T17:00:00Z"
+      "postId": "6ac152c2814d657011d27914",
+      "dueAt": "2026-10-06T17:00:00Z"
     },
     {
-      "videoId": "v04-en-world-record",
+      "videoId": "c5-dialog-tr",
       "platform": "TikTok",
-      "postId": "6abadaa7c5484f9414a0ceac",
-      "dueAt": "2026-10-02T18:00:00Z"
+      "postId": "6ac152c5814d657011d279ba",
+      "dueAt": "2026-10-07T18:00:00Z"
     },
     {
-      "videoId": "v05-en-what-happens-after",
-      "platform": "TikTok",
-      "postId": "6abadaaa85cca6b1296fd37b",
-      "dueAt": "2026-10-03T15:00:00Z"
-    },
-    {
-      "videoId": "v06-en-my-pixel-here",
-      "platform": "TikTok",
-      "postId": "6abadaab85cca6b1296fd3b1",
-      "dueAt": "2026-10-04T16:00:00Z"
-    },
-    {
-      "videoId": "v07-en-first-city-100",
-      "platform": "TikTok",
-      "postId": "6abadaadb6b261489583b5be",
-      "dueAt": "2026-10-05T17:00:00Z"
-    },
-    {
-      "videoId": "v01-en-what-if-billion",
+      "videoId": "c1-proof-en",
       "platform": "Instagram",
-      "postId": "6abadab0c5484f9414a0cf72",
-      "dueAt": "2026-09-29T15:00:00Z"
+      "postId": "6ac152c8aa79e514b9fb592e",
+      "dueAt": "2026-10-04T15:00:00Z"
     },
     {
-      "videoId": "v02-en-one-euro-pixel",
+      "videoId": "c1-proof-es",
       "platform": "Instagram",
-      "postId": "6abadab293a81b612b4fac02",
-      "dueAt": "2026-09-30T16:00:00Z"
+      "postId": "6ac152c9ad7fd83bc5ffbbe9",
+      "dueAt": "2026-10-05T16:00:00Z"
     },
     {
-      "videoId": "v03-en-buy-your-hometown",
+      "videoId": "c5-dialog-en",
       "platform": "Instagram",
-      "postId": "6abadab593a81b612b4fac59",
-      "dueAt": "2026-10-01T17:00:00Z"
+      "postId": "6ac152cb7d53b827e0e9df14",
+      "dueAt": "2026-10-06T17:00:00Z"
     },
     {
-      "videoId": "v04-en-world-record",
+      "videoId": "c5-dialog-tr",
       "platform": "Instagram",
-      "postId": "6abadab6320ca548b4cdc098",
-      "dueAt": "2026-10-02T18:00:00Z"
+      "postId": "6ac152cfaa79e514b9fb59b3",
+      "dueAt": "2026-10-07T18:00:00Z"
     },
     {
-      "videoId": "v05-en-what-happens-after",
-      "platform": "Instagram",
-      "postId": "6abadab9320ca548b4cdc0f4",
-      "dueAt": "2026-10-03T15:00:00Z"
-    },
-    {
-      "videoId": "v06-en-my-pixel-here",
-      "platform": "Instagram",
-      "postId": "6abadabbc5484f9414a0d0ad",
-      "dueAt": "2026-10-04T16:00:00Z"
-    },
-    {
-      "videoId": "v07-en-first-city-100",
-      "platform": "Instagram",
-      "postId": "6abadabc320ca548b4cdc126",
-      "dueAt": "2026-10-05T17:00:00Z"
-    },
-    {
-      "videoId": "v01-en-what-if-billion",
+      "videoId": "c1-proof-en",
       "platform": "YouTubeShorts",
-      "postId": "6abadabec5484f9414a0d0fa",
-      "dueAt": "2026-09-29T15:00:00Z"
+      "postId": "6ac152d07d53b827e0e9df53",
+      "dueAt": "2026-10-04T15:00:00Z"
     },
     {
-      "videoId": "v02-en-one-euro-pixel",
+      "videoId": "c1-proof-es",
       "platform": "YouTubeShorts",
-      "postId": "6abadac093a81b612b4fad49",
-      "dueAt": "2026-09-30T16:00:00Z"
+      "postId": "6ac152d2fec591339483725d",
+      "dueAt": "2026-10-05T16:00:00Z"
     },
     {
-      "videoId": "v03-en-buy-your-hometown",
+      "videoId": "c5-dialog-en",
       "platform": "YouTubeShorts",
-      "postId": "6abadac293a81b612b4fad92",
-      "dueAt": "2026-10-01T17:00:00Z"
+      "postId": "6ac152d4814d657011d27e0e",
+      "dueAt": "2026-10-06T17:00:00Z"
     },
     {
-      "videoId": "v04-en-world-record",
+      "videoId": "c5-dialog-tr",
       "platform": "YouTubeShorts",
-      "postId": "6abadac4320ca548b4cdc19f",
-      "dueAt": "2026-10-02T18:00:00Z"
-    },
-    {
-      "videoId": "v05-en-what-happens-after",
-      "platform": "YouTubeShorts",
-      "postId": "6abadac6320ca548b4cdc219",
-      "dueAt": "2026-10-03T15:00:00Z"
-    },
-    {
-      "videoId": "v06-en-my-pixel-here",
-      "platform": "YouTubeShorts",
-      "postId": "6abadac885cca6b1296fd6b0",
-      "dueAt": "2026-10-04T16:00:00Z"
-    },
-    {
-      "videoId": "v07-en-first-city-100",
-      "platform": "YouTubeShorts",
-      "postId": "6abadac9c5484f9414a0d1bc",
-      "dueAt": "2026-10-05T17:00:00Z"
+      "postId": "6ac152d73bfd38430fee375d",
+      "dueAt": "2026-10-07T18:00:00Z"
     }
   ]
 }

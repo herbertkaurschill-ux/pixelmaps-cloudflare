@@ -19,7 +19,9 @@ VARIANT=neon; [ $((IDX % 2)) -eq 1 ] && VARIANT=pop
 echo "Sprache/Tag: $LANG · Design: $VARIANT"
 
 # Buffer-Queue selbstfuellend halten (free plan: max. 10 scheduled pro Kanal)
-node "$PROJ/scripts/fill-queue.js" 2>/dev/null || true
+# 1) Konzept-Videos (c1/c5/c6) zuerst in freie Slots, 2) Rest mit KI-Tagesclips fuellen
+node "$PROJ/scripts/campaign/topup.mjs" || true
+node "$PROJ/scripts/fill-queue.cjs" 2>/dev/null || true
 
 mkdir -p "$CLIPDIR"
 exec >>"$LOG" 2>&1

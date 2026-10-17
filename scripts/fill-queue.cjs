@@ -2,7 +2,8 @@
 // Idempotenter Buffer-Queue-Füller: hält pro Kanal max. 10 scheduled Posts
 // und plant fehlende Tage (morgen .. +13) mit Design-/Sprachrotation nach.
 const fs = require("fs");
-const cfg = JSON.parse(fs.readFileSync(__dirname + "/agent/config.json", "utf8"));
+const path = require("path");
+const cfg = JSON.parse(fs.readFileSync(path.join(require("os").homedir(), ".n8n/agent/config.json"), "utf8"));
 const H = { Authorization: "Bearer " + cfg.bufferAccessToken, "Content-Type": "application/json" };
 const ORG = cfg.bufferOrgId || "6aafe8c03cf501260e7e406c";
 const CH = cfg.bufferChannels || {};
@@ -87,7 +88,7 @@ function modeFor(platform, dueAt) {
         : platform === "YouTubeShorts"
           ? { video: { url: `${base}/${day}-YouTubeShorts.mp4`, metadata: { title } }, metadata: { youtube: { title, categoryId: "22", privacy: "public" } } }
           : { video: { url: `${base}/${day}-InstagramReel.mp4`, metadata: { title } }, metadata: { instagram: { type: "reel", shouldShareToFeed: true } } };
-      const input = { text, channelId: cid, assets: [asset.video], metadata: asset.metadata, schedulingType: platform === "Instagram" ? "notification" : "automatic", mode: "customScheduled", dueAt: `${day}T16:00:00Z`, needsApproval: false };
+      const input = { text, channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata, schedulingType: platform === "Instagram" ? "notification" : "automatic", mode: "customScheduled", dueAt: `${day}T16:00:00Z`, needsApproval: false };
       try {
         const r = await gql(`mutation($i:CreatePostInput!){ createPost(input:$i){ ... on PostActionSuccess{ post{ id } } ... on MutationError{ message } } }`, { i: input });
         const d = r.data && r.data.createPost;

@@ -1,0 +1,21 @@
+[
+  { "id": "c6-yt-tr", "platform": "YouTubeShorts", "video": "c6-split-tr" },
+  { "id": "c6-yt-fr", "platform": "YouTubeShorts", "video": "c6-split-fr" },
+  { "id": "c6-yt-ru", "platform": "YouTubeShorts", "video": "c6-split-ru" },
+  { "id": "c6-yt-hi", "platform": "YouTubeShorts", "video": "c6-split-hi" },
+  { "id": "c6-yt-zh", "platform": "YouTubeShorts", "video": "c6-split-zh" },
+
+  { "id": "c6-tt-de", "platform": "TikTok", "video": "c6-split-de" },
+  { "id": "c6-tt-en", "platform": "TikTok", "video": "c6-split-en" },
+  { "id": "c6-tt-es", "platform": "TikTok", "video": "c6-split-es" },
+  { "id": "c6-tt-it", "platform": "TikTok", "video": "c6-split-it" },
+  { "id": "c6-tt-pt", "platform": "TikTok", "video": "c6-split-pt" },
+
+  { "id": "c1-yt-ru", "platform": "YouTubeShorts", "video": "c1-proof-ru" },
+  { "id": "c1-yt-hi", "platform": "YouTubeShorts", "video": "c1-proof-hi" },
+  { "id": "c1-yt-zh", "platform": "YouTubeShorts", "video": "c1-proof-zh" },
+
+  { "id": "c5-tt-ru", "platform": "TikTok", "video": "c5-dialog-ru" },
+  { "id": "c5-tt-hi", "platform": "TikTok", "video": "c5-dialog-hi" },
+  { "id": "c5-tt-zh", "platform": "TikTok", "video": "c5-dialog-zh" }
+]
