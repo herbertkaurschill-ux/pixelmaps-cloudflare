@@ -1,0 +1,41 @@
+{
+  "ollamaUrl": "http://host.docker.internal:11434",
+  "model": "qwen2.5:7b",
+  "bufferAccessToken": "",
+  "bufferChannels": {
+    "TikTok": "",
+    "Instagram": "",
+    "YouTubeShorts": ""
+  },
+  "instagram": {
+    "imageUrl": "",
+    "reelVideoUrl": "",
+    "reelFallbackUrl": ""
+  },
+  "tiktok": {
+    "videoUrls": []
+  },
+  "youtube": {
+    "videoUrl": "",
+    "categoryId": "22",
+    "private": false,
+    "privacy": "public",
+    "videoUrls": []
+  },
+  "ai": {
+    "images": true,
+    "video": false,
+    "videoModel": "veo",
+    "videoDuration": 6,
+    "style": "vertical pixel-art world map, glowing teal neon on dark navy, cinematic"
+  },
+  "pollinationsKey": "",
+  "marketing": {
+    "youtubeApiKey": "",
+    "youtubeChannelId": "",
+    "stripeSecretKey": ""
+  },
+  "moderationKey": "",
+  "campaignPath": "",
+  "geminiApiKey": ""
+}

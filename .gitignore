@@ -2,3 +2,7 @@ node_modules
 .wrangler
 .dev.vars
 .env
+
+# Lokale Agent-Konfiguration enthält API-Keys (Buffer, Pollinations, Gemini, Moderation).
+# Vorlage: scripts/agent/config.example.json
+scripts/agent/config.json

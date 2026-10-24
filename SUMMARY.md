@@ -8,7 +8,7 @@ Pixelmaps.org in den Verkauf bringen + organisch wachsen lassen.
   27 Posts (9/Kanal) für 26.09.–04.10., 15–18:00Z, `https://pixelmaps.org/clips/campaign/*.mp4` (live, HTTP 200).
 
 ## Important Details
-- **Stripe Webhook**: Endpoint „PixelMaps" `https://pixelmaps.org/api/stripe-webhook`, ID `we_1UHVYP5xBV1KRd3QKWCKDuOa`, 3 Events, API `2026-08-26.dahlia`. Secret `whsec_ycctwFDR61xv0T21tv9ZveifXXSfWxF8` in wrangler env. Signatur-Test: gültig → 200, ungültig → 400. **Achtung:** Sessions/Schlüssel sind LIVE (`cs_live_*`, sk_live); Stripe-CLI nur Sandbox (`acct_1UG3CO6S0BQGwlbi`).
+- **Stripe Webhook**: Endpoint „PixelMaps" `https://pixelmaps.org/api/stripe-webhook`, ID `we_1UHVYP5xBV1KRd3QKWCKDuOa`, 3 Events, API `2026-08-26.dahlia`. Secret liegt nur als Worker-Secret vor (Wert hier entfernt; **Rotation erforderlich**, da er in der Git-Historie steht). Signatur-Test: gültig → 200, ungültig → 400. **Achtung:** Sessions/Schlüssel sind LIVE (`cs_live_*`, sk_live); Stripe-CLI nur Sandbox (`acct_1UG3CO6S0BQGwlbi`).
 - **Zahlungs-Flow**: Worker-Helper `completePaidSession(env, s)` (idempotent: Mark paid, Pixel-Insert mit Conflict+Refund, Zertifikat, PDF, Mail nur wenn `!wasPaid`). Return-Seite ruft `/api/checkout/verify?session_id=` (bis 10×1,5s Retry). Echter Live-Kauf `d03d40bd…` (Pixel 320572801) → paid, Zert. `PM-0320572801-59137AEB`, Resend-Mail ok.
 - **Buffer**: Account ist **Free-Plan → max. 10 scheduled/Kanal**. 22.09. scheiterte mit „Scheduled posts limit reached (10/10)" → erklärte die „nur 3 Instagram-Posts". GraphQL (`api.buffer.com`, Bearer-Token aus `/Users/up/.n8n/agent/config.json`):
   - `posts(first:100,input:{organizationId})` (max. 100!),
