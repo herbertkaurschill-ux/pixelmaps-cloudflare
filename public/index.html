@@ -6,6 +6,7 @@
   <title>PixelMaps — The Global Pixel Project</title>
   <meta name="description" content="Klicke auf die Weltkarte und sichere deinen eigenen geografischen Pixel für 1 € – die Weltkarte aus einer Milliarde Pixeln.">
   <link rel="canonical" href="https://pixelmaps.org/">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="PixelMaps">
   <meta property="og:locale" content="de_DE">
@@ -311,6 +312,12 @@
           <div id="race-list" class="space-y-1"></div>
           <div id="race-empty" class="text-slate-400 hidden"></div>
         </div>
+
+        <div id="ref-banner" class="hidden bg-emerald-500/10 border border-emerald-500/30 p-2.5 md:p-3 rounded-xl text-[11px] md:text-xs space-y-1.5">
+          <div class="text-emerald-300 font-semibold" id="ref-banner-text"></div>
+          <button id="ref-claim-btn" onclick="toggleClaim()"
+            class="w-full bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2 rounded-lg min-h-[40px]">🎁 Gratis-Pixel einlösen</button>
+        </div>
       </div>
     </aside>
 
@@ -441,6 +448,15 @@
           <button id="sold-copy-btn" onclick="shareNative()" class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold py-2 rounded-xl text-[11px] md:text-xs min-h-[40px]" data-i18n="copyLink">🔗 Link</button>
         </div>
         <div id="share-copied" class="hidden text-center text-emerald-400 text-xs mt-2">🔗 Link kopiert!</div>
+      </div>
+      <div id="ref-box" class="hidden mt-3 md:mt-4 p-2.5 md:p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
+        <div class="text-[11px] md:text-xs text-emerald-300 font-semibold" data-i18n="refTitle">Freund einladen – Pixel gratis</div>
+        <div class="text-[10px] md:text-xs text-slate-400 mb-1.5" data-i18n="refDesc">Für jeden Kauf über deinen Link bekommst du einen Gratis-Pixel.</div>
+        <div class="flex gap-2">
+          <input id="ref-link" readonly class="flex-1 min-w-0 bg-slate-950/70 border border-slate-800 rounded-lg px-2 py-1.5 text-[10px] md:text-xs text-slate-300" />
+          <button onclick="copyRefLink()" class="bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-bold px-3 rounded-lg text-[11px] md:text-xs whitespace-nowrap min-h-[36px]" data-i18n="refCopy">Kopieren</button>
+        </div>
+        <div id="ref-copied" class="hidden text-center text-emerald-400 text-[10px] mt-1.5">✓ kopiert</div>
       </div>
       <button onclick="closeSoldModal()" class="mt-4 md:mt-5 w-full border border-slate-700 hover:border-emerald-500/50 py-2 md:py-2.5 rounded-xl text-xs md:text-sm min-h-[44px]">
         <span data-i18n="otherPlace">Andere Stelle auswählen</span>
@@ -900,7 +916,7 @@
       if (el) { el.classList.remove('hidden'); setTimeout(() => el.classList.add('hidden'), 2500); }
     }
 
-    function showPurchaseSuccess(pixelId, certUrl) {
+    function showPurchaseSuccess(pixelId, certUrl, refCode) {
       currentSharePixelId = pixelId;
       const titleEl = document.getElementById('sold-title');
       const T2 = T[window.PM_LANG] || T.en;
@@ -918,10 +934,78 @@
         if (certUrl) { certBtn.href = certUrl; certBtn.classList.remove('hidden'); }
         else certBtn.classList.add('hidden');
       }
+      if (refCode) {
+        try { localStorage.setItem('pixelmaps_own_ref', refCode); } catch (_) {}
+        setOwnRef(refCode);
+      }
       const modal = document.getElementById('sold-modal');
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
     }
+
+    // ── Referral / Gratis-Pixel ─────────────────────────────────────────
+    // refCode dieses Nutzers (aus dem Kauf), Carbon-Copy des Werbe-Links.
+    function setOwnRef(code) {
+      code = String(code || '').toLowerCase();
+      if (!/^[a-z0-9-]{4,40}$/.test(code)) return;
+      window.PM_OWN_REF = code;
+      const box = document.getElementById('ref-box');
+      const link = document.getElementById('ref-link');
+      if (box && link) {
+        link.value = location.origin + '/?ref=' + code;
+        box.classList.remove('hidden');
+      }
+      loadRefCredits();
+    }
+
+    async function copyRefLink() {
+      const link = document.getElementById('ref-link');
+      if (!link) return;
+      const val = link.value || (window.PM_OWN_REF ? location.origin + '/?ref=' + window.PM_OWN_REF : '');
+      try { await navigator.clipboard.writeText(val); } catch (_) {
+        link.select(); document.execCommand('copy');
+      }
+      const done = document.getElementById('ref-copied');
+      if (done) { done.classList.remove('hidden'); setTimeout(() => done.classList.add('hidden'), 2500); }
+    }
+
+    async function loadRefCredits() {
+      if (!window.PM_OWN_REF) return;
+      const banner = document.getElementById('ref-banner');
+      const text = document.getElementById('ref-banner-text');
+      if (!banner) return;
+      try {
+        const r = await fetch('/api/referral?code=' + encodeURIComponent(window.PM_OWN_REF), { cache: 'no-store' });
+        const d = await r.json();
+        const n = Number(d.credits || 0);
+        window.PM_REF_CREDITS = n;
+        if (n > 0) {
+          if (text) text.textContent = '🎁 ' + n + (n === 1 ? ' Gratis-Pixel verfügbar' : ' Gratis-Pixel verfügbar');
+          banner.classList.remove('hidden');
+        } else {
+          banner.classList.add('hidden');
+        }
+      } catch (_) {}
+    }
+
+    function toggleClaim() {
+      window.PM_USE_CREDIT = !window.PM_USE_CREDIT;
+      const btn = document.getElementById('ref-claim-btn');
+      if (btn) btn.textContent = window.PM_USE_CREDIT ? '✕ Gratis-Pixel doch nicht' : '🎁 Gratis-Pixel einlösen';
+      renderPrice();
+    }
+
+    // "?ref=<code>": Werber-Code merken und beim Checkout mitsenden.
+    (function captureRef() {
+      try {
+        const r = new URLSearchParams(location.search).get('ref');
+        if (r && /^[a-z0-9-]{4,40}$/i.test(r)) {
+          localStorage.setItem('pixelmaps_ref', r.toLowerCase());
+        }
+        const own = localStorage.getItem('pixelmaps_own_ref');
+        if (own) window.PM_OWN_REF = own.toLowerCase();
+      } catch (_) {}
+    })();
 
     async function sharePixel() {
       if (currentSharePixelId === null) return;
@@ -1064,7 +1148,10 @@
         consent: document.getElementById('consent').checked,
         cc: window.PM_CC || '',
         currency: window.PM_PRICE ? window.PM_PRICE.currency : '',
-        place_label: selectedPlaceLabel || undefined
+        place_label: selectedPlaceLabel || undefined,
+        ref: (function () { try { return localStorage.getItem('pixelmaps_ref') || undefined; } catch (_) { return undefined; } })(),
+        use_credit: !!window.PM_USE_CREDIT,
+        claim_code: window.PM_OWN_REF || undefined
       };
 
       try {
@@ -1153,6 +1240,7 @@
         viewCert:'Urkunde ansehen', shareLabel:'Teile deinen Pixel:', copyLink:'🔗 Link',
         thanksTitle:'Danke für deinen Pixel! 🌍', soldSuccess:'Dein Pixel ist jetzt Teil der Weltkarte.',
         ytCta:'Mehr auf YouTube',
+        refTitle:'Freund einladen – Pixel gratis', refDesc:'Für jeden Kauf über deinen Link bekommst du einen Pixel gratis.', refCopy:'Kopieren',
         otherPlace:'Andere Stelle auswählen',
         saved:'gesichert', available:'verfügbar',
         check:'Prüfe Pixel #',
@@ -1195,6 +1283,7 @@
         viewCert:'View certificate', shareLabel:'Share your pixel:', copyLink:'🔗 Link',
         thanksTitle:'Thanks for your pixel! 🌍', soldSuccess:'Your pixel is now part of the world map.',
         ytCta:'More on YouTube',
+        refTitle:'Invite a friend – free pixel', refDesc:'You get a free pixel for every purchase through your link.', refCopy:'Copy',
         otherPlace:'Choose another place',
         saved:'secured', available:'available',
         check:'Checking pixel #',
@@ -1540,17 +1629,25 @@ function applyLanguage(lang) {
       const p = window.PM_PRICE;
       const lang = window.PM_LANG || 'en';
       const t = T[lang] || T.en;
+      const free = !!window.PM_USE_CREDIT;
+      const freeLabel = free ? (lang === 'de' ? 'GRATIS-PIXEL SICHERN' : 'CLAIM FREE PIXEL') : null;
       if (p && p.display) {
         const btn = document.getElementById('submit-btn');
         const span = btn && btn.querySelector('span[data-i18n="stripeButton"]');
         if (span) {
-          const base = (t.stripeButton || '').split('·').map(s => s.trim()).filter(Boolean);
-          if (base.length > 1) span.textContent = base[0] + ' · ' + p.display;
+          if (free) span.textContent = lang === 'de' ? 'Gratis sichern · 0,00 €' : 'Claim free · €0.00';
+          else {
+            const base = (t.stripeButton || '').split('·').map(s => s.trim()).filter(Boolean);
+            if (base.length > 1) span.textContent = base[0] + ' · ' + p.display;
+          }
         }
         const cta = document.getElementById('cta-btn-text');
         if (cta) {
-          const cbase = (t.cta || '').split('·').map(s => s.trim()).filter(Boolean);
-          if (cbase.length > 1) cta.textContent = cbase[0] + ' · ' + p.display;
+          if (free) cta.textContent = freeLabel;
+          else {
+            const cbase = (t.cta || '').split('·').map(s => s.trim()).filter(Boolean);
+            if (cbase.length > 1) cta.textContent = cbase[0] + ' · ' + p.display;
+          }
         }
       }
     }
@@ -1635,12 +1732,13 @@ function applyLanguage(lang) {
         const certUrl = (pixelId !== null)
           ? '/api/certificate?id=' + encodeURIComponent(pixelId) + '&tok=' + encodeURIComponent(tok)
           : null;
+        let referralCode = '';
         const goCert = () => {
           if (pixelId !== null) {
             // Erfolg feiern + Teilen anbieten (virale Schleife). Urkunde bleibt
             // ueber den Button im Modal erreichbar.
             if (banner) banner.classList.add('hidden');
-            showPurchaseSuccess(pixelId, certUrl);
+            showPurchaseSuccess(pixelId, certUrl, referralCode);
             try { trackEvent('purchase_success'); } catch (_) {}
           } else if (certUrl) {
             window.location.href = certUrl;
@@ -1653,6 +1751,7 @@ function applyLanguage(lang) {
           fetch('/api/checkout/verify?session_id=' + encodeURIComponent(sessionId), { cache: 'no-store' })
             .then(r => r.json().catch(() => ({})))
             .then(d => {
+              if (d && d.referral_code) referralCode = d.referral_code;
               if (d && d.paid) { goCert(); return; }
               if (attempt < 10) setTimeout(() => verify(attempt + 1), 1500);
               else goCert();
@@ -1721,6 +1820,7 @@ function applyLanguage(lang) {
       refreshPrice();
       showCityHint();
       loadLeaderboard();
+      if (window.PM_OWN_REF) loadRefCredits();
     });
     loadSoldPixels();
     handleReturn();

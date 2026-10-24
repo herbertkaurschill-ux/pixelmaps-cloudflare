@@ -66,7 +66,21 @@ async function ensureSchema(env) {
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_moderation_log_pixel ON moderation_log(pixel_id)").run();
     await safeAlter(env, "pixels", "moderation_status TEXT NOT NULL DEFAULT 'pending'");
     await safeAlter(env, "pixels", "moderation_updated_at TEXT");
+    await safeAlter(env, "pixels", "emoji TEXT");
     await safeAlter(env, "purchases", "followup_sent_at TEXT");
+    // Referral-Programm (siehe migrations/0007_referrals.sql).
+    await safeAlter(env, "purchases", "ref_code TEXT");
+    await safeAlter(env, "purchases", "claim_code TEXT");
+    await safeAlter(env, "purchases", "use_credit INTEGER NOT NULL DEFAULT 0");
+    await safeAlter(env, "purchases", "referral_credited INTEGER NOT NULL DEFAULT 0");
+    await env.DB.prepare(`CREATE TABLE IF NOT EXISTS referrals (
+      code TEXT PRIMARY KEY,
+      purchase_id TEXT NOT NULL UNIQUE,
+      credits INTEGER NOT NULL DEFAULT 0,
+      uses INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`).run();
+    await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_referrals_purchase ON referrals(purchase_id)").run();
     _schemaReady = true;
   } catch (e) {
     console.log("ensureSchema:", e.message);
@@ -321,11 +335,60 @@ const ALLOWED_EMOJI = new Set([
   "🎵","❤️","🤙","😎"
 ]);
 
+// Referral: normalisiert einen teilbaren Code (base36/UUID, klein geschrieben).
+const REF_RE = /^[a-z0-9-]{4,40}$/;
+function normalizeRef(value) {
+  const v = String(value || "").trim().toLowerCase();
+  return REF_RE.test(v) ? v : "";
+}
+
+// Erzeugt (idempotent) den Referral-Code zu einem Kauf und liefert
+// {code, credits}. Bei sehr unwahrscheinlicher Kollision Fallback auf die
+// (eindeutige) Kauf-ID als Code.
+async function getOrCreateReferral(env, purchaseId) {
+  const short = hash32("ref:" + purchaseId).toString(36).padStart(7, "0");
+  for (const code of [short, String(purchaseId).toLowerCase()]) {
+    if (!REF_RE.test(code)) continue;
+    try {
+      await env.DB.prepare("INSERT OR IGNORE INTO referrals(code,purchase_id) VALUES(?,?)")
+        .bind(code, purchaseId).run();
+      const row = await env.DB.prepare("SELECT code,purchase_id,credits FROM referrals WHERE code=?")
+        .bind(code).first();
+      if (row && row.purchase_id === purchaseId) {
+        return { code: row.code, credits: Number(row.credits || 0) };
+      }
+    } catch (e) {
+      console.log("getOrCreateReferral:", e.message);
+    }
+  }
+  return { code: "", credits: 0 };
+}
+
+// Legt einen Stripe-Coupon an (idempotent). duration=once: nur einmal einloesbar.
+async function ensureCoupon(env, id, percentOff) {
+  if (!env.STRIPE_SECRET_KEY) return "";
+  try {
+    const r = await stripeFetch(env, "coupons/" + encodeURIComponent(id));
+    if (r.ok) return id;
+  } catch (_) {}
+  try {
+    const r = await stripeFetch(env, "coupons", {
+      method: "POST",
+      body: formEncode({ id, percent_off: percentOff, duration: "once" })
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok || /already exists/i.test(JSON.stringify(d))) return id;
+    console.log("ensureCoupon:", r.status, JSON.stringify(d).slice(0, 200));
+  } catch (e) {
+    console.log("ensureCoupon:", e.message);
+  }
+  return "";
+}
+
 async function createCheckout(env, body, request) {
   const pixelId = Number(body.pixel_id);
   if (!Number.isInteger(pixelId) || pixelId < 0 || pixelId >= TOTAL)
     throw new Error("Invalid pixel");
-
   if (request) {
     const origin = request.headers.get("origin");
     if (origin) {
@@ -390,14 +453,40 @@ async function createCheckout(env, body, request) {
   if (!name || !email) throw new Error("Name and email are required");
   if (!consent) throw new Error("Consent to the privacy policy is required");
 
+  // Referral: "ref" = Code, über den dieser Kauf geworben wurde.
+  const refCode = normalizeRef(body.ref);
+  let validRef = "";
+  if (refCode) {
+    const ref = await env.DB.prepare("SELECT code FROM referrals WHERE code=?").bind(refCode).first().catch(() => null);
+    if (ref) validRef = refCode;
+  }
+
+  // Gratis-Pixel einlösen: nur mit vorhandenem Guthaben und ohne bereits
+  // laufenden Gratis-Checkout fuer denselben Code.
+  let claimCode = "";
+  let useCredit = false;
+  if (body.use_credit === true || body.use_credit === "true" || String(body.use_credit) === "1") {
+    const cc = normalizeRef(body.claim_code);
+    if (cc) {
+      const ref = await env.DB.prepare("SELECT code,credits FROM referrals WHERE code=?").bind(cc).first().catch(() => null);
+      if (ref && Number(ref.credits || 0) > 0) {
+        const pend = await env.DB.prepare(
+          "SELECT COUNT(*) AS n FROM purchases WHERE claim_code=? AND status='pending'"
+        ).bind(cc).first().catch(() => null);
+        if (Number(pend?.n || 0) < 1) { claimCode = cc; useCredit = true; }
+      }
+    }
+  }
+
   try {
     await env.DB.prepare(`
       INSERT INTO purchases
-      (id,email,display_name,website,status,currency,amount_minor,pixel_id,ip,consent_given,consent_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+      (id,email,display_name,website,status,currency,amount_minor,pixel_id,ip,consent_given,consent_at,ref_code,claim_code,use_credit)
+      VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,?,?,?)
     `).bind(
       purchaseId,email,name,website,"pending",
-      price.currency,price.unit_amount,pixelId,ip,1
+      price.currency,price.unit_amount,pixelId,ip,1,
+      validRef || null, claimCode || null, useCredit ? 1 : 0
     ).run();
   } catch (e) {
     if (String(e?.message || "").toLowerCase().includes("unique") ||
@@ -410,6 +499,11 @@ async function createCheckout(env, body, request) {
   const cancel = `${env.SITE_URL}/?cancelled=1&pixel=${pixelId}`;
   const locationText = placeName || `Grid ${geo.lat.toFixed(5)}°, ${geo.lon.toFixed(5)}°`;
 
+  // Rabatt: Gratis-Pixel (100%) hat Vorrang vor dem Werbe-Rabatt (20%).
+  let couponId = "";
+  if (useCredit) couponId = await ensureCoupon(env, "pm-freepixel", 100);
+  else if (validRef) couponId = await ensureCoupon(env, "pm-ref20", 20);
+
   const params = formEncode({
     mode:"payment",
     "line_items[0][price_data][currency]":price.currency,
@@ -417,6 +511,7 @@ async function createCheckout(env, body, request) {
     "line_items[0][price_data][product_data][description]":`Pixel ${pixelId} — ${locationText}`,
     "line_items[0][price_data][unit_amount]":String(price.unit_amount),
     "line_items[0][quantity]":"1",
+    ...(couponId ? { "discounts[0][coupon]": couponId } : {}),
     success_url:success,
     cancel_url:cancel,
     customer_email:email,
@@ -436,7 +531,7 @@ async function createCheckout(env, body, request) {
   await env.DB.prepare("UPDATE purchases SET stripe_session_id=? WHERE id=?")
     .bind(data.id,purchaseId).run();
 
-  return {url:data.url, pixel_id:pixelId, place_name:placeName, currency:price.currency, unit_amount:price.unit_amount, token:purchaseId};
+  return {url:data.url, pixel_id:pixelId, place_name:placeName, currency:price.currency, unit_amount:price.unit_amount, token:purchaseId, used_credit:useCredit, discount:couponId || null};
 }
 
 function bytesToBase64(bytes) {
@@ -517,7 +612,9 @@ async function completePaidSession(env, s) {
   const gotCurrency = String(s.currency || "").toLowerCase();
   const expectedAmount = Number(p.amount_minor || 0);
   const expectedCurrency = String(p.currency || "").toLowerCase();
-  if (expectedAmount > 0 && (gotAmount !== expectedAmount || gotCurrency !== expectedCurrency)) {
+  // Rabatte (Referral 20%, Gratis-Pixel 100%) reduzieren den Betrag legitim.
+  // Abgelehnt wird nur eine andere Waehrung oder eine Ueberzahlung.
+  if (expectedAmount > 0 && (gotCurrency !== expectedCurrency || gotAmount > expectedAmount)) {
     return { purchased: false, reason: "amount/currency mismatch", pixel_id: pixelId };
   }
 
@@ -542,6 +639,7 @@ async function completePaidSession(env, s) {
           country || null
         ).run();
       } catch (e) {
+        console.log("pixel insert error:", e.message);
         await refundLosingPurchase(env, s);
         return { purchased: false, reason: "pixel conflict, refunded", pixel_id: pixelId };
       }
@@ -568,6 +666,41 @@ async function completePaidSession(env, s) {
     }
   }
 
+  // Referral-Gutschrift verarbeiten (nur beim ersten Finalisieren, best effort:
+  // darf den Kauf nie blockieren). Bewusst VOR dem Mailversand, damit ein
+  // Mailfehler die Gutschrift nicht verhindert.
+  let referral = { code: "", credits: 0 };
+  if (!wasPaid) {
+    try {
+      referral = await getOrCreateReferral(env, purchaseId);
+
+      // Werber gutschreiben, wenn dieser Kauf ueber einen fremden Code kam.
+      if (p.referral_credited !== 1) {
+        const refCode = normalizeRef(p.ref_code);
+        if (refCode) {
+          const ref = await env.DB.prepare("SELECT code,purchase_id FROM referrals WHERE code=?")
+            .bind(refCode).first().catch(() => null);
+          if (ref && ref.purchase_id !== purchaseId) {
+            await env.DB.prepare("UPDATE referrals SET credits=credits+1, uses=uses+1 WHERE code=?")
+              .bind(ref.code).run();
+          }
+        }
+        await env.DB.prepare("UPDATE purchases SET referral_credited=1 WHERE id=?").bind(purchaseId).run();
+      }
+
+      // Eingeloestes Gratis-Pixel-Guthaben abbuchen.
+      if (Number(p.use_credit) === 1) {
+        const claim = normalizeRef(p.claim_code);
+        if (claim) {
+          await env.DB.prepare("UPDATE referrals SET credits=credits-1 WHERE code=? AND credits>0")
+            .bind(claim).run();
+        }
+      }
+    } catch (e) {
+      console.log("referral credit:", e.message);
+    }
+  }
+
   const placeName = String(s.metadata?.place_name || "") || await getPlaceName(geo.lat, geo.lon, env);
   const pdf = await createCertificatePdf({
     pixelId,
@@ -578,20 +711,30 @@ async function completePaidSession(env, s) {
     certificateNo: certNo
   });
 
+  // Mailversand ist best effort: ein Resend-Fehler darf den bezahlten Kauf
+  // nicht als fehlgeschlagen erscheinen lassen.
   let emailed = false;
   if (!wasPaid && p.email) {
-    await sendCertificateEmail(env, {
-      to: p.email,
-      displayName: p.display_name || "",
-      pixelId,
-      placeName,
-      certificateNo: certNo,
-      pdf
-    });
-    emailed = true;
+    try {
+      await sendCertificateEmail(env, {
+        to: p.email,
+        displayName: p.display_name || "",
+        pixelId,
+        placeName,
+        certificateNo: certNo,
+        pdf
+      });
+      emailed = true;
+    } catch (e) {
+      console.log("certificate email:", e.message);
+    }
   }
 
-  return { purchased: true, finalized: !wasPaid, pixel_id: pixelId, certificate_no: certNo, emailed };
+  return {
+    purchased: true, finalized: !wasPaid, pixel_id: pixelId,
+    certificate_no: certNo, emailed,
+    referral_code: referral.code || "", credits: Number(referral.credits || 0)
+  };
 }
 
 async function handleStripeWebhook(request, env) {
@@ -712,6 +855,22 @@ async function router(request, env) {
     }
   }
 
+  // Referral-Guthaben abfragen: per Code oder Kauf-Token (tok).
+  if (url.pathname === "/api/referral") {
+    try {
+      const code = normalizeRef(url.searchParams.get("code"));
+      const tok = String(url.searchParams.get("tok") || "").trim();
+      let row = null;
+      if (code) row = await env.DB.prepare("SELECT code,credits,uses FROM referrals WHERE code=?").bind(code).first();
+      else if (tok) row = await env.DB.prepare("SELECT code,credits,uses FROM referrals WHERE purchase_id=?").bind(tok).first();
+      if (!row) return withCors(json({ found: false, code: "", credits: 0, uses: 0 }));
+      return withCors(json({ found: true, code: row.code, credits: Number(row.credits || 0), uses: Number(row.uses || 0) }));
+    } catch (e) {
+      console.log("referral:", e.message);
+      return withCors(json({ found: false, code: "", credits: 0, uses: 0 }));
+    }
+  }
+
   if (url.pathname === "/api/track") {
     const event = String(url.searchParams.get("e") || "").trim();
     if (!event) return withCors(json({ ok: false }));
@@ -780,13 +939,16 @@ async function router(request, env) {
     const maxLon = Number(url.searchParams.get("maxLon") ?? 180);
     const limit = Math.min(10000, Math.max(1, Number(url.searchParams.get("limit") || 5000)));
     // Personenbezogene Felder (Anzeigename, Website, Nachricht) nur
-    // ausgeben, wenn fuer den Kauf eine Einwilligung vorliegt.
+    // ausgeben, wenn fuer den Kauf eine Einwilligung vorliegt. Eigen-
+    // Testkaeufe bleiben auf der Karte (anonyme Punkte), ihre Namen
+    // werden aber nie angezeigt.
+    const notTest = TEST_EMAILS.length ? ` AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")})` : "";
     const fields = `
       p.pixel_id, p.lat, p.lon,
-      CASE WHEN pu.consent_given = 1 THEN p.display_name ELSE NULL END AS display_name,
-      CASE WHEN pu.consent_given = 1 THEN p.website ELSE NULL END AS website,
-      CASE WHEN pu.consent_given = 1 THEN p.message ELSE NULL END AS message,
-      CASE WHEN pu.consent_given = 1 THEN p.emoji ELSE NULL END AS emoji
+      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name,
+      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.website ELSE NULL END AS website,
+      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.message ELSE NULL END AS message,
+      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.emoji ELSE NULL END AS emoji
     `;
     let stmt;
     if (minLon <= maxLon) {
@@ -795,14 +957,14 @@ async function router(request, env) {
         JOIN purchases pu ON pu.id = p.purchase_id
         WHERE p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(minLat,maxLat,minLon,maxLon,limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon,limit);
     } else {
       stmt = env.DB.prepare(`
         SELECT ${fields} FROM pixels p
         JOIN purchases pu ON pu.id = p.purchase_id
         WHERE p.lat BETWEEN ? AND ? AND (p.lon >= ? OR p.lon <= ?)
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(minLat,maxLat,minLon,maxLon,limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon,limit);
     }
     const rows = await stmt.all();
     return withCors(json({pixels:rows.results||[]}));
@@ -1040,13 +1202,13 @@ async function router(request, env) {
     const limitRec = Math.min(20, Math.max(1, Number(url.searchParams.get("limit") || 10)));
     const recentRows = await env.DB.prepare(`
       SELECT p.pixel_id,
-        CASE WHEN pu.consent_given = 1 THEN p.display_name ELSE NULL END AS display_name,
+        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name,
         p.created_at
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
       ORDER BY p.created_at DESC, p.pixel_id DESC
       LIMIT ?
-    `).bind(limitRec).all();
+    `).bind(...TEST_EMAILS, limitRec).all();
     return withCors(json({pixels: recentRows.results || []}));
   }
 
