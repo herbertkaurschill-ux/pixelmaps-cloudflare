@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-23",
+  "remaining": 1000000000,
+  "scout": [
+    {
+      "id": "S1",
+      "angle": "Virtual Travel Experience",
+      "rationale": "Create a series of short videos that virtually travel the world, exploring different cultures, landscapes, and local traditions. This concept encourages users to see the world through their screens, sparking curiosity and global awareness.",
+      "hook_seed": "Explore the world, one pixel at a time. Join us on a virtual journey to experience the beauty of our planet."
+    },
+    {
+      "id": "S2",
+      "angle": "Interactive Cultural Festival",
+      "rationale": "Host an interactive virtual festival celebrating global cultures, featuring music, dance, and food from different countries. Users can participate and learn about diverse traditions, fostering a sense of global community and cultural appreciation.",
+      "hook_seed": "Celebrate the world's diversity. Join our virtual festival and experience the richness of different cultures."
+    },
+    {
+      "id": "S3",
+      "angle": "Interactive Geography Quiz",
+      "rationale": "Design an engaging quiz that tests users' knowledge of global geography. The quiz could involve matching countries to landmarks, identifying continents, or guessing the location of famous landmarks. This concept encourages learning and exploration while keeping the content interactive and fun.",
+      "hook_seed": "Test your globe-trotting skills. Join our interactive quiz to see how well you know the world."
+    }
+  ],
+  "winners": [
+    {
+      "ideaId": "S1",
+      "hook": "Travel the globe.",
+      "score": 8,
+      "reason": "Traveling the globe sounds like an exciting and adventurous idea that could appeal to many people looking for new experiences and challenges."
+    },
+    {
+      "ideaId": "S2",
+      "hook": "Festival of cultures.",
+      "score": 7,
+      "reason": "A festival celebrating cultures could be engaging and interesting, as it would allow people to experience and appreciate the diversity of the world."
+    },
+    {
+      "ideaId": "S3",
+      "hook": "Interactive quiz.",
+      "score": 6,
+      "reason": "An interactive quiz related to geography could be fun and educational, but it might not be as compelling as the other two ideas."
+    }
+  ],
+  "localized": [
+    {
+      "ideaId": "S1",
+      "en": "Explore the world.",
+      "es": "Explora el mundo.",
+      "fr": "Explore le monde.",
+      "it": "Esplora il mondo.",
+      "pt": "Explora o mundo.",
+      "tr": "Dünyayı keşfet."
+    },
+    {
+      "ideaId": "S2",
+      "en": "Cultural festival.",
+      "es": "Festival cultural.",
+      "fr": "Festival culturel.",
+      "it": "Festival culturale.",
+      "pt": "Festival cultural.",
+      "tr": "Kültür festivali."
+    },
+    {
+      "ideaId": "S3",
+      "en": "Geography quiz.",
+      "es": "Cuestionario de geografía.",
+      "fr": "Quiz géographique.",
+      "it": "Quiz geografico.",
+      "pt": "Quiz de geografia.",
+      "tr": "Coğrafya quizi."
+    }
+  ],
+  "generatedAt": "2026-10-23T20:18:39.519Z"
+}
