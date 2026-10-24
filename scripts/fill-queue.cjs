@@ -7,7 +7,35 @@ const cfg = JSON.parse(fs.readFileSync(path.join(require("os").homedir(), ".n8n/
 const H = { Authorization: "Bearer " + cfg.bufferAccessToken, "Content-Type": "application/json" };
 const ORG = cfg.bufferOrgId || "6aafe8c03cf501260e7e406c";
 const CH = cfg.bufferChannels || {};
-const MAX = 10, WANT = 14;
+const MAX = 7, WANT = 14;
+const DRY = process.argv.includes("--dry");
+const TRIM_ONLY = process.argv.includes("--trim");
+const { loadClipIndex, pickClip } = require("./campaign/clip-index.cjs");
+const CLIP_INDEX = loadClipIndex();
+const SITE = "pixelmaps.org";
+
+function loadOrchHints(){
+  try{
+    const p = path.join(require("os").homedir(), ".n8n", "agent", "orchestrator-out.json");
+    if(fs.existsSync(p)) return JSON.parse(fs.readFileSync(p,"utf8"));
+  }catch(_){}
+  try{
+    const p2 = path.join(__dirname, "agent", "orchestrator-out.json");
+    if(fs.existsSync(p2)) return JSON.parse(fs.readFileSync(p2,"utf8"));
+  }catch(_){}
+  return null;
+}
+
+function withUtm(url, src, content){
+  try{
+    const u = new URL(url);
+    u.searchParams.set("utm_source", String(src||"").toLowerCase());
+    u.searchParams.set("utm_medium", "shorts");
+    u.searchParams.set("utm_campaign", "pixelmaps-orch");
+    u.searchParams.set("utm_content", content||"intl");
+    return u.origin + u.pathname + "?" + u.searchParams.toString();
+  }catch(_){ return url; }
+}
 
 const LANGS = ["de", "en", "es", "fr", "it", "pt", "tr"];
 const DAY0 = Date.parse("2026-09-22T00:00:00Z") / 86400000;
@@ -55,6 +83,11 @@ async function gql(q, v) {
   return r.json();
 }
 
+async function deletePost(id) {
+  const r = await gql(`mutation($i:DeletePostInput!){ deletePost(input:$i){ __typename } }`, { i: { id } });
+  return !!(r.data && r.data.deletePost);
+}
+
 function modeFor(platform, dueAt) {
   const input = {
     text: "", channelId: CH[platform], assets: [], metadata: {},
@@ -74,28 +107,62 @@ function modeFor(platform, dueAt) {
     want[d] = dayInfo(d);
   }
   let created = 0;
+  const usedClips = new Set();
+  const orch = loadOrchHints();
+  const orchWinners = orch && Array.isArray(orch.winners) ? orch.winners : [];
+  const orchLoc = {};
+  if(orch && Array.isArray(orch.localized)){ for(const l of orch.localized){ if(l.ideaId) orchLoc[l.ideaId]=l; } }
+  let orchUse = 0;
   for (const [platform, cid] of Object.entries(CH)) {
     if (!cid) continue;
     let scheduled = rows.filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now).length;
     const have = new Set(rows.filter((n) => n.channelId === cid && n.dueAt && n.status !== "posted").map((n) => n.dueAt.slice(0, 10)));
+    // Ueberschuss abbauen: der Tages-Agent (frische KI-Beitraege) braucht
+    // 3 Slots pro Kanal, sonst schlaegt sein Push mit "limit reached" fehl.
+    if (scheduled > MAX) {
+      const far = rows
+        .filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now)
+        .sort((a, b) => Date.parse(b.dueAt) - Date.parse(a.dueAt));
+      for (const p of far.slice(0, scheduled - MAX)) {
+        if (DRY) { console.log(`DRY  trimme ${p.dueAt} ${p.id}`); continue; }
+        if (await deletePost(p.id)) { console.log(`TRIM ${p.dueAt} ${p.id}`); scheduled--; }
+      }
+    }
     for (const [day, info] of Object.entries(want)) {
       if (scheduled >= MAX) break;
+      if (TRIM_ONLY) break;
       if (have.has(day)) continue;
-      const text = TEXT[info.design][info.lang], title = TTL[info.design][info.lang];
-      const base = "https://pixelmaps.org/clips/generated";
+      // Text/Title mit Fallback: fehlende Sprach-Kombination darf nicht
+      // mehr als "undefined" im Beitragstext landen.
+      let text = TEXT[info.design]?.[info.lang] || TEXT[info.design]?.en || TEXT.pop.en;
+      let title = TTL[info.design]?.[info.lang] || TTL[info.design]?.en || TTL.pop.en;
+      if (orchWinners.length > 0 && info.lang === "en") {
+        const w = orchWinners[orchUse % orchWinners.length];
+        orchUse++;
+        const l = orchLoc[w.ideaId] || {};
+        const hook = l.en || w.hook || hook;
+        const cta = withUtm("https://" + SITE, platform, w.ideaId);
+        text = hook + "\n\n" + cta;
+        title = hook;
+      }
+      // Nur Clips verwenden, die wirklich als Datei existieren (live).
+      const clip = pickClip(CLIP_INDEX, info.lang, Math.floor(Math.random() * 1e6), usedClips);
+      if (!clip) { console.log(`SKIP ${day} ${platform}: kein Clip fuer ${info.lang}`); continue; }
+      usedClips.add(clip.id);
       const asset = platform === "TikTok"
-        ? { video: { url: `${base}/${day}-TikTok.mp4`, metadata: { title } } }
+        ? { video: { url: clip.url, metadata: { title } } }
         : platform === "YouTubeShorts"
-          ? { video: { url: `${base}/${day}-YouTubeShorts.mp4`, metadata: { title } }, metadata: { youtube: { title, categoryId: "22", privacy: "public" } } }
-          : { video: { url: `${base}/${day}-InstagramReel.mp4`, metadata: { title } }, metadata: { instagram: { type: "reel", shouldShareToFeed: true } } };
+          ? { video: { url: clip.url, metadata: { title } }, metadata: { youtube: { title, categoryId: "22", privacy: "public" } } }
+          : { video: { url: clip.url, metadata: { title } }, metadata: { instagram: { type: "reel", shouldShareToFeed: true } } };
       const input = { text, channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata, schedulingType: platform === "Instagram" ? "notification" : "automatic", mode: "customScheduled", dueAt: `${day}T16:00:00Z`, needsApproval: false };
+      if (DRY) { console.log(`DRY ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} -> ${clip.url}`); scheduled++; continue; }
       try {
         const r = await gql(`mutation($i:CreatePostInput!){ createPost(input:$i){ ... on PostActionSuccess{ post{ id } } ... on MutationError{ message } } }`, { i: input });
         const d = r.data && r.data.createPost;
-        if (d && d.post) { created++; scheduled++; console.log(`OK  ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${d.post.id}`); }
+        if (d && d.post) { created++; scheduled++; console.log(`OK  ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} ${d.post.id}`); }
         else console.log(`FEHLER ${day} ${platform}: ${(d && d.message) || JSON.stringify(r).slice(0, 120)}`);
       } catch (e) { console.log(`CRASH ${day} ${platform}: ${e.message}`); }
     }
   }
-  console.log(`Fertig – neu geplant: ${created}`);
+  console.log(`Fertig – neu geplant: ${created}${DRY ? " (dry)" : ""}`);
 })().catch((e) => { console.error("FATAL", e.message); process.exit(1); });
