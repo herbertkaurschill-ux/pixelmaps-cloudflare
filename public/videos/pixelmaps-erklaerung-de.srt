@@ -1,0 +1,35 @@
+1
+00:00:00,350 --> 00:00:03,631
+Eine Milliarde Pixel. Ein einziger Planet.
+
+2
+00:00:04,531 --> 00:00:09,473
+Stell dir die Weltkarte vor, aufgeteilt in eine Milliarde kleine Kästchen.
+
+3
+00:00:10,123 --> 00:00:13,668
+Jedes dieser Kästchen kann genau einer Person gehören.
+
+4
+00:00:14,368 --> 00:00:21,627
+Du suchst dir einen freien Punkt aus: deine Straße, deinen Lieblingsort, oder irgendwo mitten im Ozean.
+
+5
+00:00:22,277 --> 00:00:27,718
+Ein Euro. Einmal bezahlt, für immer deins. Kein Abo, keine Miete.
+
+6
+00:00:28,418 --> 00:00:32,821
+Dazu bekommst du eine Urkunde mit deinem Namen und deiner Pixel-Nummer.
+
+7
+00:00:33,471 --> 00:00:38,528
+Auf der Karte siehst du, wer wo ist, und welches Land gerade vorne liegt.
+
+8
+00:00:39,178 --> 00:00:43,819
+Noch ist fast die ganze Karte frei. Dein Platz ist noch nicht vergeben.
+
+9
+00:00:44,669 --> 00:00:48,091
+Sichere dir deinen Pixel auf pixelmaps.org.

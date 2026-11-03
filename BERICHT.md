@@ -54,5 +54,60 @@ Täglich 09:10 via `com.pixelmaps.publish-day`:
 - **Buffer Free-Plan:** max. 10/Kanal (jetzt konservativ 7), Edits/Löschen alter Posts teils gesperrt.
 - **Traffic:** Kein echter Verkauf trotz sauberer Pipeline. Fokus auf Traffic/Conversion nötig.
 
-## Uncommitted Changes (Repo)
-`public/index.html`, `src/worker.js`, `scripts/campaign/topup.mjs`, `scripts/fill-queue.cjs`, `scripts/publish-day.sh`, `scripts/campaign/.topup-state.json` (modifiziert). Neu: `migrations/0007_referrals.sql`, `public/robots.txt`, `scripts/buffer-queue.cjs`, `scripts/campaign/clip-index.cjs`, `scripts/campaign/repair-posts.mjs`, 4 Tagesclips 21.10.
+## YouTube-Erklärvideo (26.10.2026)
+Erstes langes 16:9-Video (kein Kurzclip) über PixelMaps:
+
+| Datei | Zweck |
+| --- | --- |
+| `public/videos/pixelmaps-erklaerung-de.mp4` | 49,1 s, 1920×1080, 30 fps, H.264/AAC, 8,5 MB |
+| `public/videos/pixelmaps-erklaerung-de.srt` | Untertitel der Sprecher-Texte (9 Cues) |
+| `public/videos/pixelmaps-erklaerung-de-thumb.jpg` | YouTube-Thumbnail 1280×720 |
+| `scripts/youtube_explainer.py` | Renderer (9 Szenen, `say`-TTS, Musik, Kamerafahrt, Live-Stats) |
+
+Öffentlich erreichbar unter `https://pixelmaps.org/videos/…` inkl. Range-Support (206).
+Der Worker behandelt `/videos/` jetzt wie `/clips/` (`serveRange`), sonst wäre Seeking
+im Browser nicht möglich gewesen.
+
+Inhalt: Idee (1 Mrd. Kästchen) → ein Kästchen/eine Person → Auswahl des Punkts →
+1 € einmalig → Urkunde → Länder-Rennen → freie Fläche → CTA. Alle Zahlen live aus
+`/api/stats` (ehrlich: `sold: 0`), keine erfundenen Kennzahlen.
+
+## Prüfprotokoll 01.–03.11.2026 (Abgleich „alles up to date“)
+
+**Live-Seite**
+- `https://pixelmaps.org/` → 200 in 0,48 s, Titel „PixelMaps — The Global Pixel Project“.
+- Browser-Konsole: nur Tailwind-CDN-Warnung (kein Fehler); alle API-Aufrufe 200.
+- Karte rendert (1000×636, 12 OSM-Kacheln) und ist nach Testdaten-Fix **ehrlich leer**: 0 Marker, „Nächster Meilenstein 0/100“, 0/30 Länder.
+- `/api/stats` `sold:0`, `/api/pixels` `[]`, `/api/recent` `[]`, `/api/leaderboard` `total:0` (auch am 03.11. geprüft).
+- Sitemap: 33 URLs, **0** `/p/`-Seiten. `/videos/*` (MP4/SRT/Thumb) alle 200.
+
+**Tagesjob**
+- launchd `com.pixelmaps.publish-day` Exit 0; Läufe am 02.11. und 03.11. fehlerfrei (je 3/3 Buffer-Pushs OK, Clips erzeugt).
+- Deploys: 02.11. `b68746d5`, 03.11. `9d8485dc`; Clips 02./03.11. live (200).
+- `publish-day.sh` (Host und `scripts/`) identisch; `orchestrator*.js` Host/Repo/Container synchron.
+
+**Assets**
+- 71 Campaign-Clips und alle Generated-Clips 25.10.–03.11. live (200).
+- Fehlender `2026-10-25-Instagram.mp4` aus `InstagramReel.mp4` ergänzt (war 404).
+- Alle in Buffer geplanten Asset-URLs live.
+
+**Behobene Fehler**
+1. Test-Pixel erschienen in `/api/pixels`, `/api/recent` und Sitemap → jetzt ausgeschlossen (deployt als `2cd8826d`).
+2. `fill-queue.cjs`/`topup.mjs` lasen nur die ersten 10 Buffer-Posts → belegte Tage galten als frei. Jetzt fensterweise Abfrage (max. 4 Tage); Trockenlauf: 0 neue Doppel-Posts.
+3. `orchestrator-push.js` zählte `undefined` (falsches Feld) → korrigiert (`chan`, `haveDays.size`).
+4. **Eigentliche Duplikat-Ursache:** `agent.js` pushte mit `mode: addToQueue`; Buffer wählte den Slot selbst und legte ihn auf bereits fest geplante Campaign-Tage. Beim Löschen verschoben sich diese Posts erneut (beobachtet), deshalb mehrere Durchgänge nötig. Jetzt sucht `agent.js` über die fensterweise Queue einen freien Tag und plant fest (`customScheduled`, 16:00/16:15/16:30 UTC). Host + Container synchron.
+5. **Trim-Schutz für den Tages-Push:** `fill-queue.cjs` unterstützt `--reserve 3`; der 09:10-Job trimmt vorher auf 4 Posts/Kanal, damit die 3 frischen Agent-Posts nicht am Queue-Ende landen und anschließend als „am weitesten entfernt“ gelöscht werden. Trockenlauf bestätigt exakt 3 Trims/Kanal.
+6. Test-Diagnosepost in Buffer gelöscht.
+
+**Duplikat-Bereinigung (freigegeben)**
+- 9 überzählige Posts in zwei Durchgängen gelöscht (je Tag blieb ein Post); alle Löschungen `DeletePostSuccess`.
+- Ursache der zweiten Welle: `addToQueue`-Posts verschoben sich beim Löschen nach vorn und trafen erneut Campaign-Tage.
+- Anschließend 9 curated Posts via `topup.mjs` neu geplant.
+- **Endstand verifiziert:** TikTok 7, Instagram 7, YouTubeShorts 7 scheduled, **0 Duplikate**, alle `customScheduled`.
+- `nextFreeDay` live getestet (TikTok → 11.11.); Queue bleibt damit stabil.
+
+**Offen**
+- Pollinations 0 Pollen (`ai.video=false`), GSC-Sitemap wartet auf Google-Login.
+
+## Änderungen in diesem Arbeitsstand (03.11.2026)
+`public/index.html`, `src/worker.js`, `scripts/campaign/topup.mjs`, `scripts/fill-queue.cjs`, `scripts/publish-day.sh`, `scripts/campaign/.topup-state.json` (modifiziert). Neu: `migrations/0007_referrals.sql`, `public/robots.txt`, `scripts/buffer-queue.cjs`, `scripts/campaign/clip-index.cjs`, `scripts/campaign/repair-posts.mjs`, 4 Tagesclips 21.10. Außerhalb des Repos zusätzlich geändert: `~/.n8n/agent/agent.js` (Freie-Tage-Planung) inkl. Container-Kopie sowie `~/.n8n/publish-day.sh` (identisch zu `scripts/publish-day.sh`).
