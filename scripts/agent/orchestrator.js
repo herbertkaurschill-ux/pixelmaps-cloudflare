@@ -4,8 +4,27 @@ const path = require("path");
 
 let CFG = {};
 try { CFG = JSON.parse(fs.readFileSync(path.join(__dirname, "config.json"), "utf8")); } catch (_) {}
-const OLLAMA = process.env.OLLAMA_URL || CFG.ollamaUrl || "http://host.docker.internal:11434";
+// Reihenfolge: env -> config -> localhost -> Docker-Hostname. Aus dem
+// n8n-Container geht nur host.docker.internal, vom Mac aus nur localhost;
+// config.ollamaUrl zeigt auf host.docker.internal und ist damit fuer den
+// launchd-Lauf (Host) immer tot (ENOTFOUND).
+const OLLAMA_CANDIDATES = [process.env.OLLAMA_URL, CFG.ollamaUrl, "http://127.0.0.1:11434", "http://host.docker.internal:11434"]
+  .filter(Boolean);
+let OLLAMA = OLLAMA_CANDIDATES[0];
 const MODEL = process.env.OLLAMA_MODEL || CFG.model || "qwen2.5:7b";
+
+async function pickOllama(tries = 3, waitMs = 10000) {
+  for (let i = 0; i < tries; i++) {
+    for (const u of OLLAMA_CANDIDATES) {
+      try {
+        const r = await fetch(u + "/api/tags", { signal: AbortSignal.timeout(4000) });
+        if (r.ok) { OLLAMA = u; return u; }
+      } catch (_) {}
+    }
+    if (i < tries - 1) await new Promise((r) => setTimeout(r, waitMs));
+  }
+  throw new Error("Ollama nicht erreichbar: " + OLLAMA_CANDIDATES.join(", "));
+}
 const SITE = "pixelmaps.org";
 
 const used = [];
@@ -65,6 +84,7 @@ async function run(){
 
   logMsg = (m)=>console.log("["+new Date().toISOString()+"] "+m);
   logMsg("Orchestrator-Start - Modell: "+MODEL);
+  logMsg("Ollama: "+await pickOllama());
 
   // 1) TrendScout
   logMsg("TrendScout läuft...");

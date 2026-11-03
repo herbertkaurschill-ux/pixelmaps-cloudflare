@@ -6,6 +6,11 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const { buildPost } = require("./post-text.cjs");
+const { langOf } = require("./clip-index.cjs");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BASE = path.join(__dirname, "..", "..");
@@ -121,8 +126,10 @@ async function replace() {
       const day = isoDay(k + 1);
       const hh = 15 + (k % 4);
       const dueAt = `${day}T${String(hh).padStart(2, "0")}:00:00Z`;
-      const title = v.title;
-      const text = `${title} · pixelmaps.org #PixelMaps`;
+      // Text + Titel je Kanal (campaign/post-text.cjs).
+      const built = buildPost({ platform, lang: langOf(v.id), date: day, clipTitle: v.title });
+      const title = built.title;
+      const text = built.text;
       const asset = assetFor(platform, v.id, title);
       const input = {
         text, channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata,
@@ -207,10 +214,11 @@ async function swap() {
       const day = isoDay(k + 1);
       const hh = 15 + (k % 4);
       const dueAt = `${day}T${String(hh).padStart(2, "0")}:00:00Z`;
-      const title = v.title;
+      const built = buildPost({ platform, lang: langOf(v.id), date: day, clipTitle: v.title, salt: k });
+      const title = built.title;
       const asset = assetFor(platform, v.id, title);
       const input = {
-        text: `${title} · pixelmaps.org #PixelMaps`,
+        text: built.text,
         channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata,
         schedulingType: platform === "Instagram" ? "notification" : "automatic",
         mode: "customScheduled", dueAt, needsApproval: false

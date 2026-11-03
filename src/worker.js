@@ -955,16 +955,16 @@ async function router(request, env) {
       stmt = env.DB.prepare(`
         SELECT ${fields} FROM pixels p
         JOIN purchases pu ON pu.id = p.purchase_id
-        WHERE p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?
+        WHERE p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?${notTest}
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon,limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, ...TEST_EMAILS, limit);
     } else {
       stmt = env.DB.prepare(`
         SELECT ${fields} FROM pixels p
         JOIN purchases pu ON pu.id = p.purchase_id
-        WHERE p.lat BETWEEN ? AND ? AND (p.lon >= ? OR p.lon <= ?)
+        WHERE p.lat BETWEEN ? AND ? AND (p.lon >= ? OR p.lon <= ?)${notTest}
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon,limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, ...TEST_EMAILS, limit);
     }
     const rows = await stmt.all();
     return withCors(json({pixels:rows.results||[]}));
@@ -1206,9 +1206,10 @@ async function router(request, env) {
         p.created_at
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
+      WHERE LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")})
       ORDER BY p.created_at DESC, p.pixel_id DESC
       LIMIT ?
-    `).bind(...TEST_EMAILS, limitRec).all();
+    `).bind(...TEST_EMAILS, ...TEST_EMAILS, limitRec).all();
     return withCors(json({pixels: recentRows.results || []}));
   }
 
@@ -1375,8 +1376,10 @@ async function router(request, env) {
 
   if (url.pathname === "/sitemap.xml") return sitemapXml(request, env);
 
-  if (url.pathname.startsWith("/clips/")) {
-    if (request.method === "GET") trackView(env, "clip", url.pathname);
+  if (url.pathname.startsWith("/clips/") || url.pathname.startsWith("/videos/")) {
+    if (request.method === "GET" && url.pathname.startsWith("/clips/")) {
+      trackView(env, "clip", url.pathname);
+    }
     return serveRange(request, url, env);
   }
 
@@ -1525,8 +1528,9 @@ async function sitemapXml(request, env) {
       SELECT p.pixel_id FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
       WHERE pu.status = 'paid' AND p.moderation_status = 'ok'
+        AND LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")})
       ORDER BY p.pixel_id DESC LIMIT 500
-    `).all();
+    `).bind(...TEST_EMAILS).all();
     for (const r of (rows?.results || [])) {
       urls.push({ loc: `${base}/p/${r.pixel_id}`, lastmod: utcDay(), prio: "0.4", freq: "monthly", alts: [] });
     }

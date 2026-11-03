@@ -4,6 +4,17 @@ const path = require("path");
 
 let CFG = {};
 try { CFG = JSON.parse(fs.readFileSync(path.join(__dirname, "config.json"), "utf8")); } catch (_) {}
+
+// Kampagnen-Skripte (Clip-Index + Text-Engine) liegen im Projekt neben
+// videos.json. Der Pfad steht in der Config, damit dieser Agent auch aus
+// ~/.n8n/agent heraus funktioniert.
+function campaignTools(){
+  const base = CFG.campaignPath ? path.dirname(CFG.campaignPath) : path.join(__dirname, "..", "campaign");
+  const out = { ci: null, pt: null };
+  try { out.ci = require(path.join(base, "clip-index.cjs")); } catch (_) {}
+  try { out.pt = require(path.join(base, "post-text.cjs")); } catch (_) {}
+  return out;
+}
 const BUFFER_TOKEN = (process.env.BUFFER_ACCESS_TOKEN || CFG.bufferAccessToken || "");
 const BUFFER_CHANNELS = (() => {
   try {
@@ -72,38 +83,42 @@ function withUtm(url, src, content){
   }catch(_){ return url; }
 }
 
-function pickClipIndex(){
+// Liefert einen Clip, der als Datei existiert und zur Sprache passt.
+function pickClipFor(lang){
+  const { ci } = campaignTools();
+  if(!ci || typeof ci.pickClip !== "function") return null;
   try{
-    const ci = require(path.join(path.dirname(__dirname),"Desktop","pixelmaps-cloudflare","scripts","campaign","clip-index.cjs"));
-    if(ci && typeof ci.loadClipIndex==="function" && typeof ci.pickClip==="function"){
-      const idx = ci.loadClipIndex();
-      const c = ci.pickClip(idx,{seed:Date.now().toString()+Math.random()});
-      if(c && c.path) return c.path;
-    }
-  }catch(_){}
-  return null;
+    const idx = ci.loadClipIndex();
+    const seed = Math.floor(Date.now()/1000);
+    return ci.pickClip(idx, lang, seed, new Set()) || ci.pickClip(idx, "en", seed, new Set()) || null;
+  }catch(_){ return null; }
 }
 
 async function hasClip(url){
   try{ const r = await fetch(url,{method:"HEAD",signal:AbortSignal.timeout(8000)}); return r.ok; }catch(_){return false;}
 }
 
-async function createPost({channelId, text, assetUrl, dueAt}){
+async function createPost({channelId, platform, text, title, assetUrl, dueAt}){
+  const mediaTitle = String(title || text.split("\n")[0] || "").slice(0, 95);
   const input = {
     text,
     channelId,
-    schedulingType: "automatic",
+    schedulingType: platform === "Instagram" ? "notification" : "automatic",
     mode: "customScheduled",
     dueAt,
+    needsApproval: false,
     assets: []
   };
-  if(assetUrl){
-    if(assetUrl.match(/\.mp4(\?|$)/i)) input.assets = [{video:{url:assetUrl, metadata:{title:text.slice(0,100)}}}];
-    else input.assets = [{image:{url:assetUrl}}];
+  if(assetUrl && assetUrl.match(/\.mp4(\?|$)/i)){
+    input.assets = [{video:{url:assetUrl, metadata:{title:mediaTitle}}}];
+    if(platform === "YouTubeShorts") input.metadata = {youtube:{title:mediaTitle, categoryId:"22", privacy:"public"}};
+    else if(platform === "Instagram") input.metadata = {instagram:{type:"reel", shouldShareToFeed:true}};
+  }else if(assetUrl){
+    input.assets = [{image:{url:assetUrl}}];
   }
-  const q = `mutation($i:CreatePostInput!){createPost(input:$i){__typename}}`;
+  const q = `mutation($i:CreatePostInput!){createPost(input:$i){... on PostActionSuccess{ post{ id } } ... on MutationError{ message }}}`;
   const d = await gql(q,{i:input});
-  return d.createPost && d.createPost.__typename==="PostActionSuccess";
+  return !!(d.createPost && (d.createPost.post || d.createPost.__typename === "PostActionSuccess"));
 }
 
 async function run(){
@@ -113,8 +128,8 @@ async function run(){
   const scheduled = await getScheduled();
   const haveDays = new Set(scheduled.filter(s=>s.dueAt).map(s=>s.dueAt.slice(0,10)));
   const byChan = {TikTok:0,Instagram:0,YouTubeShorts:0};
-  for(const s of scheduled){ if(byChan[s.channelService]!==undefined) byChan[s.channelService]++; }
-  log("Belegt: "+[...haveDays].size+" Tage | TikTok:"+byChan.TikTok+" IG:"+byChan.Instagram+" YT:"+byChan.YouTubeShorts);
+  for(const s of scheduled){ if(byChan[s.chan]!==undefined) byChan[s.chan]++; }
+  log("Belegt: "+haveDays.size+" Tage | TikTok:"+byChan.TikTok+" IG:"+byChan.Instagram+" YT:"+byChan.YouTubeShorts);
 
   const winners = hints.winners;
   const loc = {}; if(Array.isArray(hints.localized)){ for(const l of hints.localized) loc[l.ideaId]=l; }
@@ -130,15 +145,23 @@ async function run(){
       if((byChan[pl]||0)>=7) continue;
       const w = winners[added % winners.length];
       const l = loc[w.ideaId]||{};
-      const hook = l.en || w.hook || "Explore the world.";
-      const cta = withUtm("https://"+SITE, pl, w.ideaId);
-      const full = hook + "\n\n" + cta;
-      const clip = pickClipIndex();
-      const asset = clip ? ("https://pixelmaps.org"+clip) : null;
-      if(asset) await hasClip(asset).catch(()=>{});
-      const ok = await createPost({channelId:CH[pl], text:full, assetUrl:asset, dueAt:dt.toISOString()});
+      const lang = "en";
+      const clip = pickClipFor(lang);
+      const asset = clip ? clip.url : null;
+      // Ohne Video ist ein TikTok/Reel-Post wertlos -> lieber ueberspringen.
+      if(!asset || !(await hasClip(asset))){
+        log("SKIP "+pl+" "+day+" (kein erreichbarer Clip)");
+        continue;
+      }
+      // Text und Titel kommen aus der gemeinsamen Text-Engine, nicht mehr aus
+      // dem LLM-Hook ("Travel the globe.") – der verkaufte nichts.
+      const { pt } = campaignTools();
+      const built = (pt && pt.buildPost)
+        ? pt.buildPost({platform: pl, lang, date: day, clipTitle: clip.title, salt: added})
+        : {text: (l.en || w.hook || "Explore the world.") + "\n\n" + withUtm("https://"+SITE, pl, w.ideaId), title: l.en || w.hook || "PixelMaps"};
+      const ok = await createPost({channelId:CH[pl], platform: pl, text: built.text, title: built.title, assetUrl: asset, dueAt: dt.toISOString()});
       if(ok){
-        log("ADD "+pl+" "+day+" | "+hook);
+        log("ADD "+pl+" "+day+" | "+built.title);
         haveDays.add(day);
         byChan[pl]++;
         added++;

@@ -10,77 +10,57 @@ const CH = cfg.bufferChannels || {};
 const MAX = 7, WANT = 14;
 const DRY = process.argv.includes("--dry");
 const TRIM_ONLY = process.argv.includes("--trim");
+// Beim Trimmen vor dem Tages-Push muessen 3 Slots pro Kanal frei bleiben,
+// sonst plant der Agent seine 3 frischen Posts hinter die volle Queue und
+// der naechste Lauf trimmt sie als "am weitesten entfernt" wieder weg.
+const RESERVE = (() => {
+  const i = process.argv.indexOf("--reserve");
+  const n = i >= 0 ? Number(process.argv[i + 1]) : 0;
+  return Number.isFinite(n) && n > 0 ? Math.min(MAX, Math.floor(n)) : 0;
+})();
+const TRIM_TARGET = Math.max(0, MAX - RESERVE);
 const { loadClipIndex, pickClip } = require("./campaign/clip-index.cjs");
+const { buildPost, langForDate } = require("./campaign/post-text.cjs");
 const CLIP_INDEX = loadClipIndex();
-const SITE = "pixelmaps.org";
 
-function loadOrchHints(){
-  try{
-    const p = path.join(require("os").homedir(), ".n8n", "agent", "orchestrator-out.json");
-    if(fs.existsSync(p)) return JSON.parse(fs.readFileSync(p,"utf8"));
-  }catch(_){}
-  try{
-    const p2 = path.join(__dirname, "agent", "orchestrator-out.json");
-    if(fs.existsSync(p2)) return JSON.parse(fs.readFileSync(p2,"utf8"));
-  }catch(_){}
-  return null;
-}
-
-function withUtm(url, src, content){
-  try{
-    const u = new URL(url);
-    u.searchParams.set("utm_source", String(src||"").toLowerCase());
-    u.searchParams.set("utm_medium", "shorts");
-    u.searchParams.set("utm_campaign", "pixelmaps-orch");
-    u.searchParams.set("utm_content", content||"intl");
-    return u.origin + u.pathname + "?" + u.searchParams.toString();
-  }catch(_){ return url; }
-}
-
-const LANGS = ["de", "en", "es", "fr", "it", "pt", "tr"];
 const DAY0 = Date.parse("2026-09-22T00:00:00Z") / 86400000;
 function dayInfo(dStr) {
   const idx = Math.floor(Date.parse(dStr + "T00:00:00Z") / 86400000) - DAY0;
-  return { design: (idx % 2) === 0 ? "neon" : "pop", lang: LANGS[((idx % 7) + 7) % 7] };
+  // Sprache wie im Tagesvideo (campaign/post-text.cjs), Design im Wechsel.
+  return { design: (idx % 2) === 0 ? "neon" : "pop", lang: langForDate(dStr) };
 }
 function isoDate(ms) { return new Date(ms).toISOString().slice(0, 10); }
-
-const TEXT = {
-  pop: {
-    de: "1 Milliarde Pixel, ein Planet, dein Stück für immer. 🌍 Die farbigste Weltkarte der Welt – pixelmaps.org #PixelMaps",
-    en: "A billion pixels, one planet, your piece forever. 🌍 The most colourful world map – pixelmaps.org #PixelMaps",
-    es: "Mil millones de píxeles, un planeta, tu pedacito para siempre. 🌍 El mapa más colorido del mundo – pixelmaps.org #PixelMaps",
-    fr: "Un milliard de pixels, une planète, ton coin pour toujours. 🌍 Le planisphère le plus coloré du monde – pixelmaps.org #PixelMaps",
-    it: "Un miliardo di pixel, un pianeta, il tuo pezzetto per sempre. 🌍 La mappa più colorata del mondo – pixelmaps.org #PixelMaps",
-    pt: "Mil milhões de pixels, um planeta, o teu pedacinho para sempre. 🌍 O mapa mais colorido do mundo – pixelmaps.org #PixelMaps",
-    tr: "Bir milyar piksel, bir gezegen, senin parçan sonsuza dek. 🌍 Dünyanın en renkli haritası – pixelmaps.org #PixelMaps",
-  },
-  neon: {
-    de: "Dein Pixel, deine Geschichte auf der Weltkarte. 🌍 1 Milliarde Punkte – einer gehört dir. pixelmaps.org #PixelMaps",
-    en: "Your pixel, your story on the world map. 🌍 1 billion dots – one is yours. pixelmaps.org #PixelMaps",
-    es: "Tu píxel, tu historia en el mapa del mundo. 🌍 1000 millones de puntos – uno es tuyo. pixelmaps.org #PixelMaps",
-    fr: "Ton pixel, ton histoire sur le planisphère. 🌍 Un milliard de points – un est à toi. pixelmaps.org #PixelMaps",
-    it: "Il tuo pixel, la tua storia sulla mappa del mondo. 🌍 Un miliardo di punti – uno è tuo. pixelmaps.org #PixelMaps",
-    pt: "Teu píxel, a tua história no mapa do mundo. 🌍 Mil milhões de pontos – um é teu. pixelmaps.org #PixelMaps",
-    tr: "Senin pikselin, senin hikâyen dünya haritasında. 🌍 Bir milyar nokta – biri senin. pixelmaps.org #PixelMaps",
-  },
-};
-const TTL = {
-  pop: {
-    de: "Die farbigste Weltkarte der Welt", en: "The most colourful world map", es: "El mapa del mundo más colorido",
-    fr: "Le planisphère le plus coloré", it: "La mappa più colorata del mondo", pt: "O mapa do mundo mais colorido",
-    tr: "Dünyanın en renkli haritası",
-  },
-  neon: {
-    de: "Dein Pixel. Deine Geschichte.", en: "Your pixel. Your story.", es: "Tu píxel. Tu historia.",
-    fr: "Ton pixel. Ton histoire.", it: "Il tuo pixel. La tua storia.", pt: "Teu píxel. A tua história.",
-    tr: "Senin pikselin. Senin hikâyen.",
-  },
-};
 
 async function gql(q, v) {
   const r = await fetch("https://api.buffer.com", { method: "POST", headers: H, body: JSON.stringify({ query: q, variables: v }) });
   return r.json();
+}
+
+// Buffer liefert pro Abfrage nur 10 Posts. Eine einzelne "first:100"-Abfrage
+// sah deshalb nur einen Teil der Queue -> belegte Tage erschienen frei und
+// wurden doppelt belegt. Darum Zeitfenster (max. 4 Tage) pro Kanal.
+const ROWS_Q = `query($o:OrganizationId!,$f:PostsFiltersInput!){posts(input:{organizationId:$o,filter:$f,sort:[{field:dueAt,direction:asc}]}){edges{node{id channelId status dueAt text}}}}`;
+
+async function fetchScheduled(cid, horizonDays = WANT) {
+  const out = [];
+  const now = Date.now();
+  const end = now + horizonDays * 864e5;
+  for (let t = now - 2 * 864e5; t < end; t += 4 * 864e5) {
+    const e = Math.min(t + 4 * 864e5, end);
+    const f = { channelIds: [cid], status: ["scheduled"], dueAt: { start: new Date(t).toISOString(), end: new Date(e).toISOString() } };
+    const j = await gql(ROWS_Q, { o: ORG, f });
+    out.push(...(((j.data || {}).posts || {}).edges || []).map((x) => x.node));
+  }
+  return out;
+}
+
+async function fetchAllScheduled(horizonDays = WANT) {
+  let rows = [];
+  for (const cid of new Set(Object.values(CH))) {
+    if (cid) rows.push(...(await fetchScheduled(cid, horizonDays)));
+  }
+  const seen = new Set();
+  return rows.filter((r) => (seen.has(r.id) ? false : seen.add(r.id)));
 }
 
 async function deletePost(id) {
@@ -98,8 +78,7 @@ function modeFor(platform, dueAt) {
 }
 
 (async () => {
-  const j = await gql(`query($o: OrganizationId!){ posts(first:100,input:{organizationId:$o}){ edges{ node{ id channelId status dueAt } } } }`, { o: ORG });
-  const rows = j.data.posts.edges.map((e) => e.node);
+  const rows = await fetchAllScheduled(WANT);
   const now = Date.now();
   const want = {};
   for (let i = 1; i <= WANT; i++) {
@@ -108,22 +87,19 @@ function modeFor(platform, dueAt) {
   }
   let created = 0;
   const usedClips = new Set();
-  const orch = loadOrchHints();
-  const orchWinners = orch && Array.isArray(orch.winners) ? orch.winners : [];
-  const orchLoc = {};
-  if(orch && Array.isArray(orch.localized)){ for(const l of orch.localized){ if(l.ideaId) orchLoc[l.ideaId]=l; } }
-  let orchUse = 0;
   for (const [platform, cid] of Object.entries(CH)) {
     if (!cid) continue;
     let scheduled = rows.filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now).length;
+    // Texte, die auf diesem Kanal schon geplant sind -> keine Doppelten.
+    const chanTexts = new Set(rows.filter((n) => n.channelId === cid).map((n) => (n.text || "").trim()));
     const have = new Set(rows.filter((n) => n.channelId === cid && n.dueAt && n.status !== "posted").map((n) => n.dueAt.slice(0, 10)));
     // Ueberschuss abbauen: der Tages-Agent (frische KI-Beitraege) braucht
     // 3 Slots pro Kanal, sonst schlaegt sein Push mit "limit reached" fehl.
-    if (scheduled > MAX) {
+    if (scheduled > TRIM_TARGET) {
       const far = rows
         .filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now)
         .sort((a, b) => Date.parse(b.dueAt) - Date.parse(a.dueAt));
-      for (const p of far.slice(0, scheduled - MAX)) {
+      for (const p of far.slice(0, scheduled - TRIM_TARGET)) {
         if (DRY) { console.log(`DRY  trimme ${p.dueAt} ${p.id}`); continue; }
         if (await deletePost(p.id)) { console.log(`TRIM ${p.dueAt} ${p.id}`); scheduled--; }
       }
@@ -132,34 +108,30 @@ function modeFor(platform, dueAt) {
       if (scheduled >= MAX) break;
       if (TRIM_ONLY) break;
       if (have.has(day)) continue;
-      // Text/Title mit Fallback: fehlende Sprach-Kombination darf nicht
-      // mehr als "undefined" im Beitragstext landen.
-      let text = TEXT[info.design]?.[info.lang] || TEXT[info.design]?.en || TEXT.pop.en;
-      let title = TTL[info.design]?.[info.lang] || TTL[info.design]?.en || TTL.pop.en;
-      if (orchWinners.length > 0 && info.lang === "en") {
-        const w = orchWinners[orchUse % orchWinners.length];
-        orchUse++;
-        const l = orchLoc[w.ideaId] || {};
-        const hook = l.en || w.hook || hook;
-        const cta = withUtm("https://" + SITE, platform, w.ideaId);
-        text = hook + "\n\n" + cta;
-        title = hook;
-      }
       // Nur Clips verwenden, die wirklich als Datei existieren (live).
       const clip = pickClip(CLIP_INDEX, info.lang, Math.floor(Math.random() * 1e6), usedClips);
       if (!clip) { console.log(`SKIP ${day} ${platform}: kein Clip fuer ${info.lang}`); continue; }
       usedClips.add(clip.id);
+      // Text + Titel je Kanal und Sprache (campaign/post-text.cjs).
+      // salt rotiert den Hook, falls der Text auf dem Kanal schon steht.
+      let built = null;
+      for (let salt = 0; salt < 7; salt++) {
+        const cand = buildPost({ platform, lang: info.lang, date: day, design: info.design, salt, clipTitle: clip.title });
+        if (!built) built = cand;
+        if (!chanTexts.has(cand.text.trim())) { built = cand; break; }
+      }
+      const { text, title } = built;
       const asset = platform === "TikTok"
         ? { video: { url: clip.url, metadata: { title } } }
         : platform === "YouTubeShorts"
           ? { video: { url: clip.url, metadata: { title } }, metadata: { youtube: { title, categoryId: "22", privacy: "public" } } }
           : { video: { url: clip.url, metadata: { title } }, metadata: { instagram: { type: "reel", shouldShareToFeed: true } } };
       const input = { text, channelId: cid, assets: [{ video: asset.video }], metadata: asset.metadata, schedulingType: platform === "Instagram" ? "notification" : "automatic", mode: "customScheduled", dueAt: `${day}T16:00:00Z`, needsApproval: false };
-      if (DRY) { console.log(`DRY ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} -> ${clip.url}`); scheduled++; continue; }
+      if (DRY) { console.log(`DRY ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} | ${text.split("\n")[0]}`); chanTexts.add(text.trim()); scheduled++; continue; }
       try {
         const r = await gql(`mutation($i:CreatePostInput!){ createPost(input:$i){ ... on PostActionSuccess{ post{ id } } ... on MutationError{ message } } }`, { i: input });
         const d = r.data && r.data.createPost;
-        if (d && d.post) { created++; scheduled++; console.log(`OK  ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} ${d.post.id}`); }
+        if (d && d.post) { created++; scheduled++; chanTexts.add(text.trim()); console.log(`OK  ${day} ${platform.padEnd(12)} ${info.design}|${info.lang} ${clip.id} ${d.post.id}`); }
         else console.log(`FEHLER ${day} ${platform}: ${(d && d.message) || JSON.stringify(r).slice(0, 120)}`);
       } catch (e) { console.log(`CRASH ${day} ${platform}: ${e.message}`); }
     }

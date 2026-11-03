@@ -17,12 +17,10 @@ POSTS="$HOME/.n8n/content/$YR/$MO/$DATE/posts.json"
 CLIPDIR="$PROJ/public/clips/generated"
 LOG="$HOME/.n8n/content/review/publish-day.log"
 
-# 7-Sprachen-Rotation (Weltrekord-Versuch), eine Sprache pro Tag
-LANG=$("$PY" -c "import datetime;print(['de','en','es','fr','it','pt','tr'][(datetime.date.fromisoformat('$DATE')-datetime.date(2026,9,22)).days%7])")
-# Design-Rotation: neon/pop im Wechsel
-IDX=$("$PY" -c "import datetime;print((datetime.date.fromisoformat('$DATE')-datetime.date(2026,9,22)).days)")
-VARIANT=neon; [ $((IDX % 2)) -eq 1 ] && VARIANT=pop
-echo "Sprache/Tag: $LANG · Design: $VARIANT"
+# Eine Sprache pro Tag (de,en,es,fr,it,pt,tr,ru,hi,zh), damit Hook, Video und
+# Caption dieselbe Sprache sprechen. Rotationslogik: campaign/post-text.cjs.
+POST_LANG=$(node -e "const t=require('$PROJ/scripts/campaign/post-text.cjs'); console.log(t.langForDate('$DATE'))")
+echo "Sprache heute: $POST_LANG"
 
 mkdir -p "$CLIPDIR"
 exec >>"$LOG" 2>&1
@@ -34,32 +32,43 @@ if [ ! -f "$POSTS" ]; then
 fi
 [ -f "$POSTS" ] || { echo "FEHLGESCHLAGEN: kein posts.json"; exit 1; }
 
-for PL in TikTok YouTubeShorts; do
-  HOOK=$(node -e "const p=require('$POSTS').posts.find(x=>x.platform==='$PL'); console.log(p?(p.hook||p.title||''):'')")
-  TITLE=$(node -e "const p=require('$POSTS').posts.find(x=>x.platform==='$PL'); console.log(p?(p.title||p.hook||''):'')")
+# posts.json auf die Tagessprache umschreiben: agent.js pusht genau diesen
+# Text, damit Video und Caption nicht auseinanderlaufen. Backup daneben.
+if ! node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const t = require(process.argv[2]);
+const lang = t.langForDate(process.argv[3]);
+const j = JSON.parse(fs.readFileSync(file, "utf8"));
+fs.writeFileSync(file.replace(/\.json$/, ".pre-intl.json"), JSON.stringify(j, null, 2));
+for (const p of j.posts || []) {
+  const b = t.buildPost({ platform: p.platform, lang, date: process.argv[3] });
+  p.hook = b.text;
+  p.caption = "";
+  p.cta = "";
+  p.title = b.title;
+  p.hashtags = (b.tags || []).join(" ");
+}
+fs.writeFileSync(file, JSON.stringify(j, null, 2) + "\n");
+console.log("posts.json lokalisiert: " + lang);
+' "$POSTS" "$PROJ/scripts/campaign/post-text.cjs" "$DATE"; then
+  echo "WARNUNG: posts.json nicht lokalisiert (Caption bleibt in Originalsprache)"
+fi
+
+for PL in TikTok Instagram YouTubeShorts; do
+  HOOK=$(node -e "const p=require('$POSTS').posts.find(x=>x.platform==='$PL'); console.log(p?String(p.hook||p.title||'').split('\n')[0]:'')")
   [ -z "$HOOK" ] && { echo "kein Hook fuer $PL, uebersprungen"; continue; }
   OUT="$CLIPDIR/$DATE-$PL.mp4"
-  echo "Clip fuer $PL: $OUT"
-  "$PY" "$PROJ/scripts/clipmap.py" \
-    --prompt "$HOOK" \
-    --title "$TITLE" \
-    --subtitle "" \
-    --lang "$LANG" \
-    --variant "$VARIANT" \
-    --out "$OUT" \
-    --duration 6 || echo "Clip $PL FEHLGESCHLAGEN"
+  echo "Short fuer $PL: $OUT · Hook: $HOOK"
+  if [ "$PL" = "Instagram" ]; then
+    "$PY" "$PROJ/scripts/short.py" --hook "$HOOK" --lang "$POST_LANG" \
+      --out "$OUT" --cover "$CLIPDIR/$DATE-Instagram.jpg" \
+      || echo "Short $PL FEHLGESCHLAGEN"
+  else
+    "$PY" "$PROJ/scripts/short.py" --hook "$HOOK" --lang "$POST_LANG" \
+      --out "$OUT" || echo "Short $PL FEHLGESCHLAGEN"
+  fi
 done
-
-IG_PIC="$CLIPDIR/$DATE-Instagram.jpg"
-echo "Poster fuer Instagram: $IG_PIC"
-"$PY" "$PROJ/scripts/clipmap.py" --prompt "" --title "" --subtitle "" \
-  --out "$IG_PIC" --poster || echo "Poster FEHLGESCHLAGEN"
-
-IG_REEL="$CLIPDIR/$DATE-InstagramReel.mp4"
-echo "Reel fuer Instagram: $IG_REEL"
-TG_HOOK=$(node -e "const p=require('$POSTS').posts.find(x=>x.platform==='TikTok'); console.log(p?(p.hook||p.title||''):'')")
-"$PY" "$PROJ/scripts/clipmap.py" --prompt "$TG_HOOK" --title "$TG_HOOK" --subtitle "" \
-  --lang "$LANG" --variant "$VARIANT" --out "$IG_REEL" --duration 6 || echo "Reel FEHLGESCHLAGEN"
 
 node -e '
 const fs=require("fs");
@@ -67,7 +76,7 @@ const cfg="/Users/up/.n8n/agent/config.json";
 const d=JSON.parse(fs.readFileSync(cfg,"utf8"));
 d.instagram=d.instagram||{};
 d.instagram.imageUrl="https://pixelmaps.org/clips/generated/"+process.argv[1]+"-Instagram.jpg";
-d.instagram.reelVideoUrl="https://pixelmaps.org/clips/generated/"+process.argv[1]+"-InstagramReel.mp4";
+d.instagram.reelVideoUrl="https://pixelmaps.org/clips/generated/"+process.argv[1]+"-Instagram.mp4";
 fs.writeFileSync(cfg,JSON.stringify(d,null,2)+"\n");
 ' "$DATE"
 
@@ -78,7 +87,7 @@ npx wrangler deploy || { echo "FEHLGESCHLAGEN: Deploy"; exit 1; }
 echo "Push zu Buffer ..."
 # Vorher Slots freiräumen: der Agent pusht 3 Beiträge, free plan erlaubt
 # max. 10 scheduled Posts pro Kanal.
-node "$PROJ/scripts/fill-queue.cjs" --trim || true
+node "$PROJ/scripts/fill-queue.cjs" --trim --reserve 3 || true
 node "$AGENT" --push "$DATE"
 
 # Queue erst NACH dem Tages-Push auffüllen: free plan erlaubt max. 10
@@ -89,6 +98,8 @@ node "$PROJ/scripts/fill-queue.cjs" 2>/dev/null || true
 
 # Kostenloser Orchestrator: internationale Hooks generieren + Lücken füllen
 echo "Orchestrator (international) ..."
-node "$HOME/.n8n/agent/orchestrator.js" 2>/dev/null || true
-node "$HOME/.n8n/agent/orchestrator-push.js" 2>/dev/null || true
+# Fehler nicht verschlucken: 2>/dev/null hat monatelang verdeckt, dass der
+# Lauf auf dem Mac an host.docker.internal scheitert.
+node "$HOME/.n8n/agent/orchestrator.js" || echo "Orchestrator fehlgeschlagen"
+node "$HOME/.n8n/agent/orchestrator-push.js" || echo "Orchestrator-Push fehlgeschlagen"
 echo "=== fertig ==="
