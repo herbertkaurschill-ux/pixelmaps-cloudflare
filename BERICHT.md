@@ -96,7 +96,7 @@ Inhalt: Idee (1 Mrd. Kästchen) → ein Kästchen/eine Person → Auswahl des Pu
 2. `fill-queue.cjs`/`topup.mjs` lasen nur die ersten 10 Buffer-Posts → belegte Tage galten als frei. Jetzt fensterweise Abfrage (max. 4 Tage); Trockenlauf: 0 neue Doppel-Posts.
 3. `orchestrator-push.js` zählte `undefined` (falsches Feld) → korrigiert (`chan`, `haveDays.size`).
 4. **Eigentliche Duplikat-Ursache:** `agent.js` pushte mit `mode: addToQueue`; Buffer wählte den Slot selbst und legte ihn auf bereits fest geplante Campaign-Tage. Beim Löschen verschoben sich diese Posts erneut (beobachtet), deshalb mehrere Durchgänge nötig. Jetzt sucht `agent.js` über die fensterweise Queue einen freien Tag und plant fest (`customScheduled`, 16:00/16:15/16:30 UTC). Host + Container synchron.
-5. **Trim-Schutz für den Tages-Push:** `fill-queue.cjs` unterstützt `--reserve 3`; der 09:10-Job trimmt vorher auf 4 Posts/Kanal, damit die 3 frischen Agent-Posts nicht am Queue-Ende landen und anschließend als „am weitesten entfernt“ gelöscht werden. Trockenlauf bestätigt exakt 3 Trims/Kanal.
+5. **Trim-Schutz für den Tages-Push:** `fill-queue.cjs` unterstützt `--reserve 1`; der 09:10-Job trimmt vorher auf 6 Posts/Kanal, damit der eine frische Agent-Post pro Kanal nicht am Queue-Ende landet und anschließend als „am weitesten entfernt“ gelöscht wird. Der Lauf am 04.11. bestätigt: 0 Fehler, 0 Duplikate.
 6. Test-Diagnosepost in Buffer gelöscht.
 
 **Duplikat-Bereinigung (freigegeben)**
@@ -105,6 +105,11 @@ Inhalt: Idee (1 Mrd. Kästchen) → ein Kästchen/eine Person → Auswahl des Pu
 - Anschließend 9 curated Posts via `topup.mjs` neu geplant.
 - **Endstand verifiziert:** TikTok 7, Instagram 7, YouTubeShorts 7 scheduled, **0 Duplikate**, alle `customScheduled`.
 - `nextFreeDay` live getestet (TikTok → 11.11.); Queue bleibt damit stabil.
+
+**Nachtrag 04.11.2026**
+- 09:10-Lauf: **0 Fehler**, 3/3 Buffer-Pushs, Clips 04.11. erzeugt und live.
+- Queue danach: TikTok 6, Instagram 6, YouTubeShorts 6 scheduled, **0 Duplikate**; je ein Post/Kanal wurde heute bereits veröffentlicht.
+- Trim-Schutz lief (7 Trims mit Reserve 3). Ab 05.11. gilt Reserve 1, damit nur der eine frische Agent-Post pro Kanal geschützt wird.
 
 **Offen**
 - Pollinations 0 Pollen (`ai.video=false`), GSC-Sitemap wartet auf Google-Login.

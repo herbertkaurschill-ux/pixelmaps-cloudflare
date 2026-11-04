@@ -87,7 +87,7 @@ npx wrangler deploy || { echo "FEHLGESCHLAGEN: Deploy"; exit 1; }
 echo "Push zu Buffer ..."
 # Vorher Slots freiräumen: der Agent pusht 3 Beiträge, free plan erlaubt
 # max. 10 scheduled Posts pro Kanal.
-node "$PROJ/scripts/fill-queue.cjs" --trim --reserve 3 || true
+node "$PROJ/scripts/fill-queue.cjs" --trim --reserve 1 || true
 node "$AGENT" --push "$DATE"
 
 # Queue erst NACH dem Tages-Push auffüllen: free plan erlaubt max. 10

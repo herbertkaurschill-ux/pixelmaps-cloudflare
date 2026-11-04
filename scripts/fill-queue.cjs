@@ -10,9 +10,9 @@ const CH = cfg.bufferChannels || {};
 const MAX = 7, WANT = 14;
 const DRY = process.argv.includes("--dry");
 const TRIM_ONLY = process.argv.includes("--trim");
-// Beim Trimmen vor dem Tages-Push muessen 3 Slots pro Kanal frei bleiben,
-// sonst plant der Agent seine 3 frischen Posts hinter die volle Queue und
-// der naechste Lauf trimmt sie als "am weitesten entfernt" wieder weg.
+// Beim Trimmen vor dem Tages-Push muss 1 Slot pro Kanal frei bleiben,
+// sonst plant der Agent seinen frischen Post hinter die volle Queue und
+// der naechste Lauf trimmt ihn als "am weitesten entfernt" wieder weg.
 const RESERVE = (() => {
   const i = process.argv.indexOf("--reserve");
   const n = i >= 0 ? Number(process.argv[i + 1]) : 0;
@@ -94,7 +94,8 @@ function modeFor(platform, dueAt) {
     const chanTexts = new Set(rows.filter((n) => n.channelId === cid).map((n) => (n.text || "").trim()));
     const have = new Set(rows.filter((n) => n.channelId === cid && n.dueAt && n.status !== "posted").map((n) => n.dueAt.slice(0, 10)));
     // Ueberschuss abbauen: der Tages-Agent (frische KI-Beitraege) braucht
-    // 3 Slots pro Kanal, sonst schlaegt sein Push mit "limit reached" fehl.
+    // einen freien Slot pro Kanal, sonst schlaegt sein Push mit "limit
+    // reached" fehl.
     if (scheduled > TRIM_TARGET) {
       const far = rows
         .filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now)
