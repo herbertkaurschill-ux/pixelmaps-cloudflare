@@ -4,21 +4,24 @@ youtube_explainer.py – langes Erklärvideo (16:9) für PixelMaps.
 
 Im Gegensatz zu clipmap.py (9:16, 6 s, nur Musik) erzeugt dieses Skript ein
 YouTube-taugliches Querformat-Video mit:
-  - deutscher Sprecher-Stimme (macOS `say`, offline, kostenlos)
+  - Sprecher-Stimme (edge-tts-Neuralstimme oder offline macOS `say`)
   - prozeduraler Hintergrundmusik (aus clipmap.py)
   - eingebrannten Untertiteln
   - Kamerafahrt über die echte Weltkarte
   - ehrlichen Zahlen (live von /api/stats, keine erfundenen Werte)
+  - Deutsch oder Englisch (--lang de|en)
 
 Nutzung:
-  python3 scripts/youtube_explainer.py --out public/videos/pixelmaps-de.mp4
-  python3 scripts/youtube_explainer.py --out /tmp/test.mp4 --test
+  python3 scripts/youtube_explainer.py --out public/videos/pixelmaps-de.mp4 --lang de
+  python3 scripts/youtube_explainer.py --out public/videos/pixelmaps-en.mp4 --lang en
+  python3 scripts/youtube_explainer.py --out /tmp/test.mp4 --lang en --test
   python3 scripts/youtube_explainer.py --out ... --voice "Anna" --lang de
 """
 import argparse
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -43,7 +46,7 @@ DIM = (150, 172, 194)
 # Szenen: Text wird gesprochen UND als Untertitel gezeigt. Keine erfundenen
 # Zahlen: verkaufte Pixel kommen live aus /api/stats.
 # ----------------------------------------------------------------------------
-SCENES = [
+SCENES_DE = [
     dict(
         id="intro",
         voice="Eine Milliarde Pixel. Ein einziger Planet.",
@@ -110,7 +113,7 @@ SCENES = [
     dict(
         id="free",
         voice="Noch ist fast die ganze Karte frei. Dein Platz ist noch nicht vergeben.",
-        head="Noch frei: 1.000.000.000",
+        head="Noch frei: {remaining}",
         sub="Dein Platz ist noch nicht vergeben.",
         visual="free",
         cam=[(0.50, 0.48, 0.96)],
@@ -127,6 +130,150 @@ SCENES = [
     ),
 ]
 
+SCENES_EN = [
+    dict(
+        id="intro",
+        voice="One billion pixels. One single planet.",
+        head="1,000,000,000 pixels",
+        sub="One planet. One shared map.",
+        visual="intro",
+        cam=[(0.50, 0.48, 1.00)],
+        lead=0.35, tail=0.85,
+    ),
+    dict(
+        id="idea",
+        voice="Imagine the world map split into one billion tiny squares.",
+        head="The world map, in 1 billion squares",
+        sub="Every square is a real place.",
+        visual="dots",
+        cam=[(0.50, 0.48, 0.86), (0.47, 0.45, 0.62)],
+        lead=0.30, tail=0.60,
+    ),
+    dict(
+        id="owner",
+        voice="Each of those squares can belong to exactly one person.",
+        head="One square. One person.",
+        sub="Permanent, not rented.",
+        visual="highlight",
+        cam=[(0.52, 0.40, 0.44)],
+        lead=0.30, tail=0.65,
+    ),
+    dict(
+        id="choose",
+        voice="You pick a free spot: your street, your favorite place, or somewhere out in the ocean.",
+        head="You pick the spot",
+        sub="A street, a summit, an island. Anything.",
+        visual="pick",
+        cam=[(0.52, 0.40, 0.30), (0.55, 0.52, 0.26)],
+        lead=0.30, tail=0.60,
+    ),
+    dict(
+        id="price",
+        voice="One euro. Paid once, yours forever. No subscription, no rent.",
+        head="€1 · once · forever",
+        sub="No subscription. No rent.",
+        visual="price",
+        cam=[(0.50, 0.46, 0.72)],
+        lead=0.30, tail=0.65,
+    ),
+    dict(
+        id="cert",
+        voice="You also get a certificate with your name and your pixel number.",
+        head="Your certificate",
+        sub="With your name, coordinates and pixel number.",
+        visual="certificate",
+        cam=[(0.50, 0.46, 0.80)],
+        lead=0.30, tail=0.60,
+    ),
+    dict(
+        id="race",
+        voice="On the map you can see who is where, and which country is currently ahead.",
+        head="The country race",
+        sub="Germany, France, USA, Brazil, Japan …",
+        visual="race",
+        cam=[(0.50, 0.47, 0.55), (0.48, 0.44, 0.62)],
+        lead=0.30, tail=0.60,
+    ),
+    dict(
+        id="free",
+        voice="Right now, almost the whole map is still free. Your spot has not been taken yet.",
+        head="Still free: {remaining}",
+        sub="Your spot has not been taken yet.",
+        visual="free",
+        cam=[(0.50, 0.48, 0.96)],
+        lead=0.30, tail=0.80,
+    ),
+    dict(
+        id="cta",
+        voice="Claim your pixel at pixelmaps.org.",
+        head="pixelmaps.org",
+        sub="Claim your pixel.",
+        visual="brand",
+        cam=[(0.50, 0.46, 1.00)],
+        lead=0.30, tail=1.30,
+    ),
+]
+
+SCENES = {"de": SCENES_DE, "en": SCENES_EN}
+
+UI = {
+    "de": dict(
+        locale="de",
+        header="1 Milliarde Pixel · 1 € pro Pixel",
+        intro_line="Ein Planet. Eine Karte.",
+        point="dein Punkt",
+        price_caption="Euro · einmal zahlen · für immer",
+        race=["Deutschland", "Frankreich", "USA", "Brasilien", "Japan", "Indien"],
+        free_caption="Pixel noch frei",
+        sold="vergeben",
+        brand_cta="Sichere dir deinen Pixel.",
+        cert_tag="BEISPIEL",
+        cert_title="URKUNDE",
+        cert_owner="Dieser Pixel gehört",
+        cert_name="DEIN NAME",
+        cert_number="Pixel-Nr. 123.456.789",
+        cert_coords="Koordinaten 52.5200° N, 13.4050° E",
+        default_voice="Anna",
+    ),
+    "en": dict(
+        locale="en",
+        header="1 billion pixels · €1 per pixel",
+        intro_line="One planet. One map.",
+        point="your spot",
+        price_caption="euro · pay once · forever",
+        race=["Germany", "France", "USA", "Brazil", "Japan", "India"],
+        free_caption="pixels still free",
+        sold="taken",
+        brand_cta="Claim your pixel.",
+        cert_tag="EXAMPLE",
+        cert_title="CERTIFICATE",
+        cert_owner="This pixel belongs to",
+        cert_name="YOUR NAME",
+        cert_number="Pixel no. 123,456,789",
+        cert_coords="Coordinates 52.5200° N, 13.4050° E",
+        default_voice="en-US-AriaNeural",
+    ),
+}
+
+# Wird in main() gesetzt. Die Zeichen-Helfer lesen die aktive Sprache hieraus.
+LANG = "de"
+TXT = UI["de"]
+STATS = {"total": 1_000_000_000, "sold": 0, "remaining": 1_000_000_000}
+
+
+def set_lang(lang):
+    global LANG, TXT
+    LANG = lang
+    TXT = UI[lang]
+    _OVERLAY_CACHE.clear()
+
+
+def fmt_num(value):
+    """Tausenderzeichen passend zur Sprache (de: 1.000, en: 1,000)."""
+    if LANG == "de":
+        return f"{int(value):,}".replace(",", ".")
+    return f"{int(value):,}"
+
 
 # ----------------------------------------------------------------------------
 # Audio-Helfer
@@ -135,15 +282,53 @@ def run(cmd, **kw):
     return subprocess.run(cmd, check=True, capture_output=True, **kw)
 
 
-def tts_scene(text, voice, rate, out_wav):
-    """Spricht den Text offline via macOS `say` und liefert eine 48k-Mono-WAV."""
-    tmp = tempfile.mktemp(suffix=".aiff")
-    try:
-        run(["say", "-v", voice, "-r", str(rate), "-o", tmp, text])
-        run(["ffmpeg", "-y", "-i", tmp, "-ac", "1", "-ar", str(SR), "-c:a", "pcm_s16le", out_wav])
-    finally:
-        if os.path.exists(tmp):
-            os.remove(tmp)
+def _edge_tts_bin():
+    env = os.environ.get("EXPLAINER_EDGE_TTS")
+    if env and os.path.exists(env):
+        return env
+    local = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         ".venv-tts", "bin", "edge-tts")
+    if os.path.exists(local):
+        return local
+    return shutil.which("edge-tts")
+
+
+def is_neural_voice(voice):
+    return bool(re.match(r"^[a-z]{2}-[A-Z]{2}-.+Neural$", voice or ""))
+
+
+def tts_scene(text, voice, rate, out_wav, edge_rate="+0%"):
+    """Vertont einen Satz.
+
+    Neuralstimmen (z. B. en-US-AriaNeural) laufen über edge-tts und klingen
+    deutlich natürlicher. Alles andere geht offline über macOS `say`.
+    Ergebnis ist immer eine 48-kHz-Mono-WAV.
+    """
+    if is_neural_voice(voice):
+        edge = _edge_tts_bin()
+        if not edge:
+            raise RuntimeError(
+                "edge-tts nicht gefunden. Installieren mit: "
+                "python3.11 -m venv .venv-tts && .venv-tts/bin/pip install edge-tts"
+            )
+        tmp = tempfile.mktemp(suffix=".mp3")
+        try:
+            run([edge, "--voice", voice, "--text", text,
+                 "--rate", edge_rate, "--write-media", tmp])
+            run(["ffmpeg", "-y", "-i", tmp, "-ac", "1", "-ar", str(SR),
+                 "-c:a", "pcm_s16le", out_wav])
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+    else:
+        tmp = tempfile.mktemp(suffix=".aiff")
+        try:
+            run(["say", "-v", voice, "-r", str(rate), "-o", tmp, text])
+            run(["ffmpeg", "-y", "-i", tmp, "-ac", "1", "-ar", str(SR),
+                 "-c:a", "pcm_s16le", out_wav])
+        finally:
+            if os.path.exists(tmp):
+                os.remove(tmp)
     with wave.open(out_wav, "rb") as w:
         return w.getnframes() / float(w.getframerate())
 
@@ -260,7 +445,7 @@ def _header_overlay():
         d.text((110, 54), "PIXELMAPS", font=f, fill=(255, 255, 255))
         w = d.textlength("PIXELMAPS", font=f)
         d.text((110 + w + 12, 54), ".ORG", font=C.font(30, "regular"), fill=CYAN)
-        chip = "1 Milliarde Pixel · 1 € pro Pixel"
+        chip = TXT["header"]
         fc = C.font(24, "medium")
         tw = d.textlength(chip, font=fc)
         d.rounded_rectangle([VW - 110 - tw - 44, 44, VW - 110, 104], radius=30,
@@ -282,7 +467,8 @@ def scene_overlay(idx, sc):
         head_size = 74 if sc["visual"] == "intro" else 62
         fh = C.font(head_size, "bold")
         fs = C.font(32, "medium")
-        d.text((110, VH - 240), sc["head"], font=fh, fill=(255, 255, 255))
+        head = sc["head"].replace("{remaining}", fmt_num(STATS["remaining"]))
+        d.text((110, VH - 240), head, font=fh, fill=(255, 255, 255))
         if sc["sub"]:
             d.text((110, VH - 240 + head_size + 22), sc["sub"], font=fs, fill=DIM)
     _OVERLAY_CACHE[key] = ov
@@ -323,7 +509,7 @@ def ring(img, x, y, r, color, width=3, alpha=210):
 
 def big_number(img, value, caption, y=None, size=190, color=(255, 255, 255)):
     """Große Zahl mittig, mit Tausenderpunkten."""
-    s = f"{int(value):,}".replace(",", ".")
+    s = fmt_num(value)
     d = ImageDraw.Draw(img)
     f = C.font(size, "bold")
     tw = d.textlength(s, font=f)
@@ -343,11 +529,15 @@ def certificate_card(img):
     d = ImageDraw.Draw(layer)
     d.rounded_rectangle([x, y, x + w, y + h], radius=26, fill=(250, 250, 246, 246))
     d.rounded_rectangle([x + 18, y + 18, x + w - 18, y + h - 18], radius=18, outline=(18, 30, 44, 90), width=2)
-    d.text((x + 52, y + 54), "URKUNDE", font=C.font(30, "demi"), fill=(90, 105, 120))
-    d.text((x + 52, y + 104), "Dieser Pixel gehört", font=C.font(34, "regular"), fill=(30, 40, 52))
-    d.text((x + 52, y + 158), "DEIN NAME", font=C.font(62, "bold"), fill=(8, 14, 24))
-    d.text((x + 52, y + 246), "Pixel-Nr. 123.456.789", font=C.font(30, "medium"), fill=(40, 52, 66))
-    d.text((x + 52, y + 292), "Koordinaten 52.5200° N, 13.4050° E", font=C.font(26, "regular"), fill=(90, 105, 120))
+    tag = TXT["cert_tag"]
+    ft = C.font(20, "demi")
+    tw = d.textlength(tag, font=ft)
+    d.text((x + w - 52 - tw, y + 58), tag, font=ft, fill=(170, 120, 60))
+    d.text((x + 52, y + 54), TXT["cert_title"], font=C.font(30, "demi"), fill=(90, 105, 120))
+    d.text((x + 52, y + 104), TXT["cert_owner"], font=C.font(34, "regular"), fill=(30, 40, 52))
+    d.text((x + 52, y + 158), TXT["cert_name"], font=C.font(62, "bold"), fill=(8, 14, 24))
+    d.text((x + 52, y + 246), TXT["cert_number"], font=C.font(30, "medium"), fill=(40, 52, 66))
+    d.text((x + 52, y + 292), TXT["cert_coords"], font=C.font(26, "regular"), fill=(90, 105, 120))
     d.text((x + 52, y + 344), "pixelmaps.org", font=C.font(26, "demi"), fill=(14, 120, 140))
     return Image.alpha_composite(img.convert("RGBA"), layer)
 
@@ -363,7 +553,7 @@ def brand_lockup(img, t):
     tw2 = d.textlength(url, font=f2)
     d.text(((VW - tw2) / 2, VH // 2 - 40), url, font=f2, fill=CYAN)
     f3 = C.font(34, "regular")
-    cta = "Sichere dir deinen Pixel."
+    cta = TXT["brand_cta"]
     tw3 = d.textlength(cta, font=f3)
     d.text(((VW - tw3) / 2, VH // 2 + 40), cta, font=f3, fill=DIM)
     return img
@@ -389,17 +579,26 @@ def fetch_stats():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True)
-    ap.add_argument("--voice", default=os.environ.get("EXPLAINER_VOICE", "Anna"))
-    ap.add_argument("--rate", type=int, default=168, help="Sprechgeschwindigkeit (Wörter/min)")
+    ap.add_argument("--lang", choices=["de", "en"], default="de")
+    ap.add_argument("--voice", default=None, help="Standard: Anna (de) / en-US-AriaNeural (en)")
+    ap.add_argument("--rate", type=int, default=168, help="macOS-say: Wörter/min")
+    ap.add_argument("--edge-rate", default="+0%", help="edge-tts-Geschwindigkeit, z. B. +5%% oder -5%%")
     ap.add_argument("--test", action="store_true", help="nur die ersten zwei Szenen rendern")
     ap.add_argument("--no-music", action="store_true")
     ap.add_argument("--srt", action="store_true", help="Untertitel-Datei (.srt) zur Vertonung schreiben")
     ap.add_argument("--keep-frames", action="store_true", help="Temp-Ordner mit WAVs behalten")
     args = ap.parse_args()
 
-    stats = fetch_stats()
-    scenes = SCENES[:2] if args.test else SCENES
-    print(f"PixelMaps-Erklärvideo: {len(scenes)} Szenen | sold={stats['sold']} frei={stats['remaining']}")
+    set_lang(args.lang)
+    if not args.voice:
+        args.voice = os.environ.get("EXPLAINER_VOICE") or TXT["default_voice"]
+
+    global STATS
+    STATS = fetch_stats()
+    stats = STATS
+    scenes = SCENES[args.lang][:2] if args.test else SCENES[args.lang]
+    print(f"PixelMaps-Erklärvideo [{args.lang}]: {len(scenes)} Szenen | "
+          f"Stimme={args.voice} | sold={stats['sold']} frei={stats['remaining']}")
 
     tmp = tempfile.mkdtemp(prefix="pixelmaps_yt_")
     try:
@@ -408,7 +607,7 @@ def main():
         t = 0.0
         for i, sc in enumerate(scenes):
             wav = os.path.join(tmp, f"n{i:02d}.wav")
-            dur = tts_scene(sc["voice"], args.voice, args.rate, wav)
+            dur = tts_scene(sc["voice"], args.voice, args.rate, wav, args.edge_rate)
             total = sc["lead"] + dur + sc["tail"]
             timeline.append(dict(idx=i, scene=sc, start=t, end=t + total, narr=wav, narr_dur=dur))
             t += total
@@ -501,8 +700,8 @@ def main():
             if sc["visual"] == "intro":
                 f = C.font(56, "medium")
                 d = ImageDraw.Draw(img)
-                tw = d.textlength("Ein Planet. Eine Karte.", font=f)
-                d.text(((VW - tw) / 2, 300), "Ein Planet. Eine Karte.", font=f, fill=(226, 240, 250))
+                tw = d.textlength(TXT["intro_line"], font=f)
+                d.text(((VW - tw) / 2, 300), TXT["intro_line"], font=f, fill=(226, 240, 250))
 
             elif sc["visual"] == "highlight":
                 x, y = wm.to_screen(52.52, 13.40, cam)   # Berlin
@@ -511,7 +710,7 @@ def main():
                 ring(img, x, y, int(92 * pulse), MINT, 2, 90)
                 paste_dot(img, x, y, 9, MINT, 3.0, 255)
                 d = ImageDraw.Draw(img)
-                d.text((x + 24, y - 74), "dein Punkt", font=C.font(30, "demi"), fill=(215, 255, 245))
+                d.text((x + 24, y - 74), TXT["point"], font=C.font(30, "demi"), fill=(215, 255, 245))
 
             elif sc["visual"] == "pick":
                 x, y = wm.to_screen(52.52, 13.40, cam)
@@ -521,7 +720,7 @@ def main():
                 d.text((x + 20, y + 22), "52.5200° N · 13.4050° E", font=C.font(28, "medium"), fill=(200, 240, 250))
 
             elif sc["visual"] == "price":
-                img = big_number(img, 1, "Euro · einmal zahlen · für immer", y=300, size=240)
+                img = big_number(img, 1, TXT["price_caption"], y=300, size=240)
 
             elif sc["visual"] == "certificate":
                 img = certificate_card(img)
@@ -529,7 +728,7 @@ def main():
             elif sc["visual"] == "race":
                 d = ImageDraw.Draw(img)
                 f = C.font(34, "medium")
-                items = ["Deutschland", "Frankreich", "USA", "Brasilien", "Japan", "Indien"]
+                items = TXT["race"]
                 x0 = 110
                 for i, name in enumerate(items):
                     tw = d.textlength(name, font=f)
@@ -539,9 +738,9 @@ def main():
                     d.text((x0 + 22, y + 8), name, font=f, fill=(226, 240, 250))
 
             elif sc["visual"] == "free":
-                img = big_number(img, stats["remaining"], "Pixel noch frei", y=320, size=150)
+                img = big_number(img, stats["remaining"], TXT["free_caption"], y=320, size=150)
                 d = ImageDraw.Draw(img)
-                sub = f"vergeben: {stats['sold']}"
+                sub = f"{TXT['sold']}: {fmt_num(stats['sold'])}"
                 tw = d.textlength(sub, font=C.font(34, "medium"))
                 d.text(((VW - tw) / 2, 700), sub, font=C.font(34, "medium"), fill=DIM)
 

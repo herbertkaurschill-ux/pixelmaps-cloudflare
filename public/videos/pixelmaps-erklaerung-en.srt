@@ -1,0 +1,35 @@
+1
+00:00:00,350 --> 00:00:05,232
+One billion pixels. One single planet.
+
+2
+00:00:06,132 --> 00:00:10,846
+Imagine the world map split into one billion tiny squares.
+
+3
+00:00:11,496 --> 00:00:15,850
+Each of those squares can belong to exactly one person.
+
+4
+00:00:16,550 --> 00:00:22,392
+You pick a free spot: your street, your favorite place, or somewhere out in the ocean.
+
+5
+00:00:23,042 --> 00:00:30,372
+One euro. Paid once, yours forever. No subscription, no rent.
+
+6
+00:00:31,072 --> 00:00:35,378
+You also get a certificate with your name and your pixel number.
+
+7
+00:00:36,028 --> 00:00:41,078
+On the map you can see who is where, and which country is currently ahead.
+
+8
+00:00:41,728 --> 00:00:48,434
+Right now, almost the whole map is still free. Your spot has not been taken yet.
+
+9
+00:00:49,284 --> 00:00:52,942
+Claim your pixel at pixelmaps.org.

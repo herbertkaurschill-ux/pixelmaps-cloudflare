@@ -3,6 +3,11 @@ node_modules
 .dev.vars
 .env
 
+# Lokale Python-Umgebung für die natürliche TTS-Stimme (edge-tts)
+.venv-tts/
+__pycache__/
+*.pyc
+
 # Lokale Agent-Konfiguration enthält API-Keys (Buffer, Pollinations, Gemini, Moderation).
 # Vorlage: scripts/agent/config.example.json
 scripts/agent/config.json
