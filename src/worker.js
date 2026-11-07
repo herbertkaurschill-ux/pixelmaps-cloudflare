@@ -161,6 +161,13 @@ const TEST_EMAILS = [
   "kaurschill@gmx.net",
   "a.kaurschill@gmail.com",
 ];
+// Einzelne eigene Kaeufe, die oeffentlich als echter Verkauf zaehlen:
+// Name, Zaehler, Feed und Sitemap werden fuer diese Pixel-ID freigeschaltet.
+// Die uebrigen Test-Pixel bleiben anonym und werden nicht gezaehlt.
+const PUBLIC_PIXELS = [216300736];
+const PUBLIC_SQL = PUBLIC_PIXELS.length
+  ? `p.pixel_id IN (${PUBLIC_PIXELS.map(n => Number(n)).join(",")})`
+  : "0";
 const PPP_EUR_CENTS = {
   DE:100, AT:100, CH:100, LI:100, LU:100, BE:100, NL:100,
   FR:100, ES:100, IT:100, PT:100, IE:100, FI:100, GR:100,
@@ -825,7 +832,7 @@ async function router(request, env) {
     const r = await env.DB.prepare(
       `SELECT COUNT(*) AS sold FROM pixels p
          JOIN purchases pu ON pu.id = p.purchase_id
-        WHERE LOWER(pu.email) NOT IN (${ph})`
+        WHERE (LOWER(pu.email) NOT IN (${ph}) OR ${PUBLIC_SQL})`
     ).bind(...TEST_EMAILS).first().catch(() => null);
     const sold = Number(r?.sold || 0);
     return withCors(json({total:TOTAL,sold,remaining:TOTAL-sold}));
@@ -841,7 +848,7 @@ async function router(request, env) {
            JOIN purchases pu ON pu.id = p.purchase_id
           WHERE pu.status = 'paid'
             AND p.country IS NOT NULL AND LENGTH(p.country) = 2
-            AND LOWER(pu.email) NOT IN (${ph})
+            AND (LOWER(pu.email) NOT IN (${ph}) OR ${PUBLIC_SQL})
           GROUP BY UPPER(p.country)
           ORDER BY n DESC, cc ASC
           LIMIT 50`
@@ -944,10 +951,10 @@ async function router(request, env) {
     // werden aber nie angezeigt.
     const fields = `
       p.pixel_id, p.lat, p.lon,
-      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name,
-      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.website ELSE NULL END AS website,
-      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.message ELSE NULL END AS message,
-      CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.emoji ELSE NULL END AS emoji
+      CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name,
+      CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.website ELSE NULL END AS website,
+      CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.message ELSE NULL END AS message,
+      CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji
     `;
     let stmt;
     if (minLon <= maxLon) {
@@ -1175,11 +1182,11 @@ async function router(request, env) {
     if (!Number.isInteger(id) || id<0 || id>=TOTAL) return withCors(json({error:"Invalid pixel"},400));
     const p = await env.DB.prepare(`
       SELECT p.pixel_id, p.lat, p.lon,
-        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name,
-        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.website ELSE NULL END AS website,
-        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.message ELSE NULL END AS message,
-        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.emoji ELSE NULL END AS emoji,
-        CASE WHEN pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN c.certificate_no ELSE NULL END AS certificate_no
+        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name,
+        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.website ELSE NULL END AS website,
+        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.message ELSE NULL END AS message,
+        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji,
+        CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN c.certificate_no ELSE NULL END AS certificate_no
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
       LEFT JOIN certificates c ON c.pixel_id = p.pixel_id
@@ -1201,11 +1208,11 @@ async function router(request, env) {
     const limitRec = Math.min(20, Math.max(1, Number(url.searchParams.get("limit") || 10)));
     const recentRows = await env.DB.prepare(`
       SELECT p.pixel_id,
-        CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name,
+        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name,
         p.created_at
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
-      WHERE LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")})
+      WHERE (LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL})
       ORDER BY p.created_at DESC, p.pixel_id DESC
       LIMIT ?
     `).bind(...TEST_EMAILS, ...TEST_EMAILS, limitRec).all();
@@ -1314,8 +1321,8 @@ async function router(request, env) {
       try {
         const info = await env.DB.prepare(`
           SELECT
-            CASE WHEN pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.emoji ELSE NULL END AS emoji,
-            CASE WHEN pu.consent_given = 1 AND pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) THEN p.display_name ELSE NULL END AS display_name
+            CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji,
+            CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name
           FROM pixels p JOIN purchases pu ON pu.id = p.purchase_id
           WHERE p.pixel_id = ?
         `).bind(...TEST_EMAILS, ...TEST_EMAILS, shareId).first();
@@ -1527,8 +1534,9 @@ async function sitemapXml(request, env) {
     const rows = await env.DB.prepare(`
       SELECT p.pixel_id FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
-      WHERE pu.status = 'paid' AND p.moderation_status = 'ok'
-        AND LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")})
+      WHERE pu.status = 'paid'
+        AND (p.moderation_status = 'ok' OR ${PUBLIC_SQL})
+        AND (LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL})
       ORDER BY p.pixel_id DESC LIMIT 500
     `).bind(...TEST_EMAILS).all();
     for (const r of (rows?.results || [])) {
