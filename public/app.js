@@ -328,7 +328,9 @@ async function openModal() {
           : "";
 
       ownerEl.innerHTML =
-        `Owned by <strong>${ownerName}</strong>${website}`;
+        ownerName
+          ? `Owned by <strong>${ownerName}</strong>${website}`
+          : `Owned pixel · anonymous`;
 
       form.classList.add("hidden");
 
