@@ -168,6 +168,27 @@ const PUBLIC_PIXELS = [216300736];
 const PUBLIC_SQL = PUBLIC_PIXELS.length
   ? `p.pixel_id IN (${PUBLIC_PIXELS.map(n => Number(n)).join(",")})`
   : "0";
+// Feste Emoji-Zuordnung fuer die bestehenden Test-Pixel ohne eigenes Emoji.
+// Deterministisch, damit die Karte bei jedem Laden identisch aussieht.
+// Neue Pixel ohne Emoji fallen im Frontend auf den neutralen Pin zurueck.
+const TEST_EMOJI_FALLBACK = {
+  102655780: "🌍",
+  193943356: "🌊",
+  201383535: "🌈",
+  202706585: "⭐",
+  215580716: "🌙",
+  219420931: "☀️",
+  233063876: "🚀",
+  248347618: "🎈",
+  262822816: "🎸",
+  274544941: "🦊",
+  293664308: "🐼",
+  312465047: "🌵",
+  388902222: "🍕",
+};
+function emojiFor(pixelId, emoji) {
+  return emoji || TEST_EMOJI_FALLBACK[Number(pixelId)] || null;
+}
 const PPP_EUR_CENTS = {
   DE:100, AT:100, CH:100, LI:100, LU:100, BE:100, NL:100,
   FR:100, ES:100, IT:100, PT:100, IE:100, FI:100, GR:100,
@@ -973,7 +994,11 @@ async function router(request, env) {
       `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, limit);
     }
     const rows = await stmt.all();
-    return withCors(json({pixels:rows.results||[]}));
+    const pixels = (rows.results || []).map(r => ({
+      ...r,
+      emoji: emojiFor(r.pixel_id, r.emoji)
+    }));
+    return withCors(json({pixels}));
   }
 
   // Agenten: Content-Moderation (AGB §7). Nur mit Admin-Key abrufbar.
@@ -1192,6 +1217,7 @@ async function router(request, env) {
       LEFT JOIN certificates c ON c.pixel_id = p.pixel_id
       WHERE p.pixel_id = ?
     `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, id).first();
+    if (p) p.emoji = emojiFor(p.pixel_id, p.emoji);
     const geo = idToGeo(id);
     // Optionaler Adress-Label aus der Suche; kommt nur von Nominatim (/api/search).
     // Plausibilitaet: Label nur uebernehmen, wenn es zur realen Lage passt.
