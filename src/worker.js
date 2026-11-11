@@ -954,7 +954,7 @@ async function router(request, env) {
       CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name,
       CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.website ELSE NULL END AS website,
       CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.message ELSE NULL END AS message,
-      CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji
+      p.emoji AS emoji
     `;
     let stmt;
     if (minLon <= maxLon) {
@@ -963,14 +963,14 @@ async function router(request, env) {
         JOIN purchases pu ON pu.id = p.purchase_id
         WHERE p.lat BETWEEN ? AND ? AND p.lon BETWEEN ? AND ?
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, limit);
     } else {
       stmt = env.DB.prepare(`
         SELECT ${fields} FROM pixels p
         JOIN purchases pu ON pu.id = p.purchase_id
         WHERE p.lat BETWEEN ? AND ? AND (p.lon >= ? OR p.lon <= ?)
         ORDER BY p.pixel_id LIMIT ?
-      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, limit);
+      `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, minLat,maxLat,minLon,maxLon, limit);
     }
     const rows = await stmt.all();
     return withCors(json({pixels:rows.results||[]}));
@@ -1185,13 +1185,13 @@ async function router(request, env) {
         CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name,
         CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.website ELSE NULL END AS website,
         CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.message ELSE NULL END AS message,
-        CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji,
+        p.emoji AS emoji,
         CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN c.certificate_no ELSE NULL END AS certificate_no
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
       LEFT JOIN certificates c ON c.pixel_id = p.pixel_id
       WHERE p.pixel_id = ?
-    `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, id).first();
+    `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, id).first();
     const geo = idToGeo(id);
     // Optionaler Adress-Label aus der Suche; kommt nur von Nominatim (/api/search).
     // Plausibilitaet: Label nur uebernehmen, wenn es zur realen Lage passt.
@@ -1321,11 +1321,11 @@ async function router(request, env) {
       try {
         const info = await env.DB.prepare(`
           SELECT
-            CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.emoji ELSE NULL END AS emoji,
+            p.emoji AS emoji,
             CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.display_name ELSE NULL END AS display_name
           FROM pixels p JOIN purchases pu ON pu.id = p.purchase_id
           WHERE p.pixel_id = ?
-        `).bind(...TEST_EMAILS, ...TEST_EMAILS, shareId).first();
+        `).bind(...TEST_EMAILS, shareId).first();
         og = buildOgTags(
           env.SITE_URL || "https://pixelmaps.org",
           shareId,
