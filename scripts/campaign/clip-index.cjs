@@ -53,11 +53,18 @@ function loadClipIndex() {
   return { all, byLang, byId: Object.fromEntries(all.map((c) => [c.id, c])) };
 }
 
+// Aktuelle Kampagne: Clips mit diesem Praefix laufen bevorzugt, damit die
+// Emoji-Karte in allen Sprachen erscheint. Aeltere Clips bleiben Fallback,
+// falls fuer eine Sprache (noch) kein Emoji-Clip existiert.
+const PREFERRED_PREFIX = process.env.PREFERRED_CLIPS || "emoji-";
+
 // Clip fuer eine Sprache waehlen. seed sorgt fuer Streuung, usedClips
 // verhindert, dass derselbe Clip zweimal in einer Woche laeuft.
 function pickClip(index, lang, seed, usedClips) {
-  const pool = (index.byLang[lang] && index.byLang[lang].length ? index.byLang[lang] : index.all);
-  if (!pool.length) return null;
+  const langPool = (index.byLang[lang] && index.byLang[lang].length ? index.byLang[lang] : index.all);
+  if (!langPool.length) return null;
+  const preferred = langPool.filter((c) => String(c.id).startsWith(PREFERRED_PREFIX));
+  const pool = preferred.length ? preferred : langPool;
   const free = pool.filter((c) => !usedClips || !usedClips.has(c.id));
   const use = free.length ? free : pool;
   return use[Math.abs(seed) % use.length];

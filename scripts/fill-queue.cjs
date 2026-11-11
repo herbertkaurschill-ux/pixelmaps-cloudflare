@@ -7,7 +7,11 @@ const cfg = JSON.parse(fs.readFileSync(path.join(require("os").homedir(), ".n8n/
 const H = { Authorization: "Bearer " + cfg.bufferAccessToken, "Content-Type": "application/json" };
 const ORG = cfg.bufferOrgId || "6aafe8c03cf501260e7e406c";
 const CH = cfg.bufferChannels || {};
-const MAX = 7, WANT = 14;
+// MAX = 10: Buffer Free erlaubt 10 geplante Posts pro Kanal. Die Sprach-
+// rotation umfasst 10 Sprachen (de,en,es,fr,it,pt,tr,ru,hi,zh), also ist die
+// Queue damit immer komplett gefuellt und jede Sprache bekommt ihren Tag.
+// Der Tages-Push trimmt vorher mit --reserve 1 auf 9 und hat so einen Slot.
+const MAX = 10, WANT = 14;
 const DRY = process.argv.includes("--dry");
 const TRIM_ONLY = process.argv.includes("--trim");
 // Beim Trimmen vor dem Tages-Push muss 1 Slot pro Kanal frei bleiben,
@@ -86,9 +90,12 @@ function modeFor(platform, dueAt) {
     want[d] = dayInfo(d);
   }
   let created = 0;
-  const usedClips = new Set();
   for (const [platform, cid] of Object.entries(CH)) {
     if (!cid) continue;
+    // Pro Kanal eigene Auswahl: derselbe Emoji-Clip darf am selben Tag auf
+    // TikTok, Instagram und YouTube Shorts laufen, nur der Text unterscheidet
+    // sich. Dadurch bleibt pro Sprache genau ein Clip verfuegbar.
+    const usedClips = new Set();
     let scheduled = rows.filter((n) => n.channelId === cid && n.status === "scheduled" && Date.parse(n.dueAt) > now).length;
     // Texte, die auf diesem Kanal schon geplant sind -> keine Doppelten.
     const chanTexts = new Set(rows.filter((n) => n.channelId === cid).map((n) => (n.text || "").trim()));
