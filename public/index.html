@@ -51,6 +51,24 @@
         0 0 18px hsl(var(--px-h, 156) 92% 55% / .7),
         0 0 32px hsl(var(--px-h, 156) 92% 55% / .35);
     }
+    /* Pixel mit gewaehltem Emoji: Emoji sitzt sichtbar im Pixel. */
+    .sold-pixel.emoji-pixel {
+      box-sizing: border-box;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      line-height: 1;
+      background: hsl(var(--px-h, 156) 92% 55% / .16);
+      border: 1px solid hsl(var(--px-h, 156) 92% 72% / .65);
+      box-shadow:
+        0 0 10px hsl(var(--px-h, 156) 92% 55% / .45),
+        0 2px 10px rgba(0,0,0,.45);
+      text-shadow: 0 1px 3px rgba(0,0,0,.55);
+    }
     @keyframes ticker-pop {
       from { opacity: .3; transform: translateY(5px); }
       to { opacity: 1; transform: none; }
@@ -511,16 +529,19 @@
       return PIXEL_HUES[(Math.abs(id) * 5) % 12];
     }
 
-    function makeIcon(className, id) {
+    function makeIcon(className, id, emoji) {
       let style = '';
       if (className === 'sold-pixel' && Number.isInteger(id)) {
         style = ' style="--px-h:' + pixelHue(id) + '"';
       }
+      const hasEmoji = className === 'sold-pixel' && !!emoji;
+      const cls = className + (hasEmoji ? ' emoji-pixel' : '');
+      const inner = hasEmoji ? escapeHtml(emoji) : '';
       return L.divIcon({
         className: '',
-        html: '<div class="' + className + '"' + style + '></div>',
-        iconSize: className === 'selected-pixel' ? [20,20] : [16,16],
-        iconAnchor: className === 'selected-pixel' ? [10,10] : [8,8],
+        html: '<div class="' + cls + '"' + style + '>' + inner + '</div>',
+        iconSize: className === 'selected-pixel' ? [20,20] : (hasEmoji ? [28,28] : [16,16]),
+        iconAnchor: className === 'selected-pixel' ? [10,10] : (hasEmoji ? [14,14] : [8,8]),
         popupAnchor: [0,-8]
       });
     }
@@ -557,8 +578,9 @@
           loadedSoldIds.add(id);
 
           const marker = L.marker([Number(p.lat), Number(p.lon)], {
-            icon: makeIcon('sold-pixel', id),
-            zIndexOffset: 500
+            icon: makeIcon('sold-pixel', id, p.emoji),
+            // Emoji-Pixel immer ueber den normalen Punkten halten.
+            zIndexOffset: p.emoji ? 1200 : 500
           });
 
           const title = p.display_name ? escapeHtml(p.display_name) : 'Gesicherter Pixel';
