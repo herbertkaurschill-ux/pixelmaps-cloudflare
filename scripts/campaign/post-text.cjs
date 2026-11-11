@@ -255,6 +255,97 @@ function dayIndex(dateStr) {
   return Math.floor(Date.parse(d + "T00:00:00Z") / 86400000) - DAY0;
 }
 
+// Gemeinsamer Slogan passend zu den Emoji-Pixeln auf der Karte.
+// Wird in jedem Kanal als eigene Zeile gesetzt, damit TikTok, Instagram und
+// YouTube Shorts dieselbe Kampagne erkennbar tragen.
+const SLOGAN = {
+  de: "Dein Pixel. Dein Emoji. Für immer.",
+  en: "Your pixel. Your emoji. Forever.",
+  es: "Tu píxel. Tu emoji. Para siempre.",
+  fr: "Ton pixel. Ton emoji. Pour toujours.",
+  it: "Il tuo pixel. Il tuo emoji. Per sempre.",
+  pt: "O teu píxel. O teu emoji. Para sempre.",
+  tr: "Pikselin. Emojin. Sonsuza dek.",
+  ru: "Твой пиксель. Твой эмодзи. Навсегда.",
+  hi: "तुम्हारा पिक्सेल। तुम्हारा इमोजी। हमेशा के लिए।",
+  zh: "你的像素。你的表情。永久保留。",
+};
+
+// Emoji-spezifische Hooks. Sie laufen in derselben Rotation wie die
+// bestehenden Hooks, damit nicht jeden Tag derselbe Satz erscheint.
+const EMOJI_HOOKS = {
+  de: [
+    "Wähle dein Emoji – es bleibt für immer in deinem Pixel. 🍀",
+    "Dein Pixel zeigt jetzt, was du fühlst: dein Emoji.",
+    "🌍 🌊 🚀 🦊 – welches Emoji bekommt dein Pixel?",
+  ],
+  en: [
+    "Pick your emoji — it stays in your pixel forever. 🍀",
+    "Your pixel now shows how you feel: your emoji.",
+    "🌍 🌊 🚀 🦊 — which emoji gets your pixel?",
+  ],
+  es: [
+    "Elige tu emoji: se queda en tu píxel para siempre. 🍀",
+    "Tu píxel ahora muestra lo que sientes: tu emoji.",
+    "🌍 🌊 🚀 🦊 — ¿qué emoji tendrá tu píxel?",
+  ],
+  fr: [
+    "Choisis ton emoji : il reste dans ton pixel pour toujours. 🍀",
+    "Ton pixel montre maintenant ce que tu ressens : ton emoji.",
+    "🌍 🌊 🚀 🦊 — quel emoji aura ton pixel ?",
+  ],
+  it: [
+    "Scegli il tuo emoji: resta nel tuo pixel per sempre. 🍀",
+    "Il tuo pixel ora mostra ciò che senti: il tuo emoji.",
+    "🌍 🌊 🚀 🦊 — quale emoji avrà il tuo pixel?",
+  ],
+  pt: [
+    "Escolhe o teu emoji: fica no teu píxel para sempre. 🍀",
+    "O teu píxel agora mostra o que sentes: o teu emoji.",
+    "🌍 🌊 🚀 🦊 — qual emoji vai ficar no teu píxel?",
+  ],
+  tr: [
+    "Emojini seç — pikselinde sonsuza dek kalsın. 🍀",
+    "Pikselin artık ne hissettiğini gösteriyor: emojin.",
+    "🌍 🌊 🚀 🦊 — pikselin hangi emojiyi alacak?",
+  ],
+  ru: [
+    "Выбери эмодзи — он останется в твоём пикселе навсегда. 🍀",
+    "Твой пиксель теперь показывает, что ты чувствуешь: твой эмодзи.",
+    "🌍 🌊 🚀 🦊 — какой эмодзи получит твой пиксель?",
+  ],
+  hi: [
+    "अपना इमोजी चुनो — वह हमेशा तुम्हारे पिक्सेल में रहेगा। 🍀",
+    "तुम्हारा पिक्सेल अब दिखाता है कि तुम क्या महसूस करते हो: तुम्हारा इमोजी।",
+    "🌍 🌊 🚀 🦊 — तुम्हारे पिक्सेल को कौन सा इमोजी मिलेगा?",
+  ],
+  zh: [
+    "选一个表情，它会永远留在你的像素里。🍀",
+    "你的像素现在展示你的心情：你的表情。",
+    "🌍 🌊 🚀 🦊 —— 你的像素会选哪个表情？",
+  ],
+};
+
+// YouTube-Titel mit Suchbegriff und Emoji-Bezug.
+const EMOJI_TITLES = {
+  de: ["Dein Pixel, dein Emoji – für immer auf der Weltkarte"],
+  en: ["Your pixel, your emoji – forever on the world map"],
+  es: ["Tu píxel, tu emoji – para siempre en el mapa"],
+  fr: ["Ton pixel, ton emoji – pour toujours sur la carte"],
+  it: ["Il tuo pixel, il tuo emoji – per sempre sulla mappa"],
+  pt: ["O teu píxel, o teu emoji – para sempre no mapa"],
+  tr: ["Pikselin, emojin – dünya haritasında sonsuza dek"],
+  ru: ["Твой пиксель, твой эмодзи — навсегда на карте мира"],
+  hi: ["तुम्हारा पिक्सेल, तुम्हारा इमोजी — हमेशा के लिए नक्शे पर"],
+  zh: ["你的像素，你的表情——永远留在世界地图上"],
+};
+
+for (const lang of Object.keys(COPY)) {
+  if (SLOGAN[lang]) COPY[lang].slogan = SLOGAN[lang];
+  if (EMOJI_HOOKS[lang]) COPY[lang].hooks.unshift(...EMOJI_HOOKS[lang]);
+  if (EMOJI_TITLES[lang]) COPY[lang].titles.unshift(...EMOJI_TITLES[lang]);
+}
+
 function pick(arr, i) {
   return arr[((i % arr.length) + arr.length) % arr.length];
 }
@@ -300,6 +391,7 @@ function buildPost({ platform, lang, date, design, siteUrl, salt, clipTitle }) {
   const hook = pick(c.hooks, idx);
   const body = pick(c.bodies, Math.floor(idx / 3));
   const cta = c.cta[platform] || c.cta.Instagram;
+  const slogan = c.slogan || "";
   const tags = tagsFor(lang, platform, idx);
   const link = withUtm(siteUrl || SITE, platform);
 
@@ -312,15 +404,15 @@ function buildPost({ platform, lang, date, design, siteUrl, salt, clipTitle }) {
     const hasPrice = /€|euro/i.test(base);
     title = hasKeyword || hasPrice ? base : `${base} · 1 €`;
     if (!/#shorts/i.test(title) && title.length + 8 <= 95) title += " #Shorts";
-    text = `${hook}\n\n${body}\n\n${cta} ${link}\n\n${tags.join(" ")}`;
+    text = `${hook}\n\n${slogan}\n\n${body}\n\n${cta} ${link}\n\n${tags.join(" ")}`;
   } else if (platform === "Instagram") {
-    // Reels: Hook, Nutzen, Link-in-Bio. Kein nackter Link im Text.
+    // Reels: Hook, Slogan, Nutzen, Link-in-Bio. Kein nackter Link im Text.
     title = hook;
-    text = `${hook}\n\n${body}\n\n${cta}\n\n${tags.join(" ")}`;
+    text = `${hook}\n\n${slogan}\n\n${body}\n\n${cta}\n\n${tags.join(" ")}`;
   } else {
     // TikTok: kurz, erste Zeile entscheidet, wenige Tags.
     title = hook;
-    text = `${hook}\n${cta}\n\n${tags.join(" ")}`;
+    text = `${hook}\n${slogan}\n${cta}\n\n${tags.join(" ")}`;
   }
   return { platform, lang, text, title, tags, url: link };
 }

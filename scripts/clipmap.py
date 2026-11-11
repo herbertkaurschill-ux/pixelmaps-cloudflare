@@ -240,6 +240,36 @@ LANG = {
         ],
         "caption": "40.000 \u00d7 25.000 karo  \u00b7  piksel ba\u015f\u0131na 1 \u20ac",
     },
+    "ru": {
+        "eyebrow": "\u041f\u041e\u041f\u042b\u0422\u041a\u0410 \u041c\u0418\u0420\u041e\u0412\u041e\u0413\u041e \u0420\u0415\u041a\u041e\u0420\u0414\u0410",
+        "claim": [
+            ("\u0427\u0442\u043e, \u0435\u0441\u043b\u0438", "regular", 46, "white"),
+            ("\u043c\u0438\u043b\u043b\u0438\u0430\u0440\u0434 \u043f\u0438\u043a\u0441\u0435\u043b\u0435\u0439", "bold", 58, "gradient"),
+            ("\u0441\u0442\u0430\u043d\u0443\u0442 \u043e\u0434\u043d\u043e\u0439", "regular", 40, "white"),
+            ("\u043a\u0430\u0440\u0442\u043e\u0439 \u043c\u0438\u0440\u0430?", "demi", 56, "soft"),
+        ],
+        "caption": "40 000 \u00d7 25 000 \u0444\u0440\u0430\u0433\u043c\u0435\u043d\u0442\u043e\u0432  \u00b7  1 \u20ac \u0437\u0430 \u043f\u0438\u043a\u0441\u0435\u043b\u044c",
+    },
+    "hi": {
+        "eyebrow": "\u0935\u093f\u0936\u094d\u0935 \u0930\u093f\u0915\u0949\u0930\u094d\u0921 \u0915\u093e \u092a\u094d\u0930\u092f\u093e\u0938",
+        "claim": [
+            ("\u0915\u094d\u092f\u093e \u0939\u094b\u0917\u093e \u0905\u0917\u0930", "regular", 46, "white"),
+            ("\u090f\u0915 \u0905\u0930\u092c \u092a\u093f\u0915\u094d\u0938\u0947\u0932", "bold", 58, "gradient"),
+            ("\u090f\u0915 \u0938\u093e\u091d\u093e \u0928\u0915\u094d\u0936\u093e", "regular", 40, "white"),
+            ("\u092c\u0928 \u091c\u093e\u090f?", "demi", 54, "soft"),
+        ],
+        "caption": "40,000 \u00d7 25,000 \u091f\u093e\u0907\u0932  \u00b7  \u0939\u0930 \u092a\u093f\u0915\u094d\u0938\u0947\u0932 1 \u20ac",
+    },
+    "zh": {
+        "eyebrow": "\u4e16\u754c\u7eaa\u5f55\u5c1d\u8bd5",
+        "claim": [
+            ("\u5982\u679c\u5341\u4ebf\u4e2a\u50cf\u7d20", "regular", 50, "white"),
+            ("\u7ec4\u6210\u4e00\u5f20", "bold", 60, "gradient"),
+            ("\u5171\u4eab\u7684\u4e16\u754c\u5730\u56fe", "regular", 44, "white"),
+            ("\u4f1a\u600e\u6837\uff1f", "demi", 56, "soft"),
+        ],
+        "caption": "40,000 \u00d7 25,000 \u5757  \u00b7  \u6bcf\u4e2a\u50cf\u7d20 1 \u20ac",
+    },
 }
 
 LANDMARKS = [
@@ -295,6 +325,47 @@ def font(size, style="regular"):
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
     return ImageFont.load_default()
+
+
+# Schrift fuer andere Schriftsysteme: Avenir kann weder Devanagari noch CJK.
+# Ohne diesen Fallback erscheinen Hindi- und Chinesisch-Clips als Kaestchen.
+SCRIPT_FONT_CANDIDATES = {
+    "deva": [
+        "/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc",
+        "/System/Library/Fonts/Supplemental/ITFDevanagari.ttc",
+    ],
+    "cjk": [
+        "/System/Library/Fonts/Hiragino Sans GB.ttc",
+        "/System/Library/Fonts/STHeiti Medium.ttc",
+    ],
+}
+_SCRIPT_FONT_CACHE = {}
+
+
+def font_for(text, size, style="regular"):
+    s = str(text or "")
+    script = None
+    if any("\u0900" <= ch <= "\u097f" for ch in s):
+        script = "deva"
+    elif any("\u4e00" <= ch <= "\u9fff" or "\u3040" <= ch <= "\u30ff" for ch in s):
+        script = "cjk"
+    if not script:
+        return font(size, style)
+    key = (script, int(size))
+    if key in _SCRIPT_FONT_CACHE:
+        return _SCRIPT_FONT_CACHE[key]
+    from PIL import ImageFont
+    picked = font(size, style)
+    for path in SCRIPT_FONT_CANDIDATES.get(script, []):
+        if not os.path.exists(path):
+            continue
+        try:
+            picked = ImageFont.truetype(path, size)
+            break
+        except Exception:
+            continue
+    _SCRIPT_FONT_CACHE[key] = picked
+    return picked
 
 
 def draw_tracked(d, text, font, cx, y, fill, tracking=7):
@@ -396,6 +467,65 @@ def load_pixels():
     return seq
 
 
+# --- Emoji-Marker -----------------------------------------------------------
+# Pixel mit gewaehltem Emoji werden als echter Emoji-Glyph gezeichnet, nicht
+# als Quadrat. Das Emoji sitzt im Pixel und bleibt auch beim Zoomen sichtbar.
+_EMOJI_CACHE = {}
+_EMOJI_FONT_PATHS = (
+    "/System/Library/Fonts/Apple Color Emoji.ttc",
+    "/System/Library/Fonts/Apple Color Emoji.ttf",
+)
+
+
+def emoji_image(glyph, size):
+    if not glyph:
+        return None
+    key = (glyph, int(size))
+    if key in _EMOJI_CACHE:
+        return _EMOJI_CACHE[key]
+    img = None
+    try:
+        from PIL import ImageFont
+        for path in _EMOJI_FONT_PATHS:
+            if not os.path.exists(path):
+                continue
+            f = ImageFont.truetype(path, 160)
+            tmp = Image.new("RGBA", (240, 240), (0, 0, 0, 0))
+            ImageDraw.Draw(tmp).text((12, 12), glyph, font=f, embedded_color=True)
+            bb = tmp.getbbox()
+            if not bb:
+                continue
+            img = tmp.crop(bb)
+            img.thumbnail((int(size), int(size)), Image.LANCZOS)
+            break
+    except Exception as e:
+        print("emoji render failed:", glyph, e)
+        img = None
+    _EMOJI_CACHE[key] = img
+    return img
+
+
+def paste_emoji(layer, glyph, x, y, size):
+    """Zeichnet Emoji mittig auf (x,y), mit dunklem Halo fuer Kontrast."""
+    img = emoji_image(glyph, size)
+    if img is None:
+        return False
+    d = ImageDraw.Draw(layer)
+    r = size * 0.78
+    for k, a in ((1.0, 34), (0.72, 52)):
+        rr = r * k
+        d.ellipse([x - rr, y - rr, x + rr, y + rr], fill=(3, 8, 16, a))
+    layer.alpha_composite(img, (int(x - img.width / 2), int(y - img.height / 2)))
+    return True
+
+
+def draw_marker(layer, p, x, y, size=40, pr=1.0, alpha=255):
+    """Ein Pixel: Emoji, wenn vorhanden, sonst farbiges Quadrat."""
+    if p.get("emoji"):
+        return paste_emoji(layer, p["emoji"], x, y, int(size * (0.72 + 0.28 * pr)))
+    return False
+
+
 def build_overlay(title, lang="de", variant="classic", custom=None):
     V = VARIANT.get(variant, VARIANT["classic"])
     if custom is not None:
@@ -434,14 +564,14 @@ def build_overlay(title, lang="de", variant="classic", custom=None):
         a = int(240 * (i - (H - 700)) / 700)
         d.rectangle([0, i, W, i], fill=foot_top + (a,))
     # Eyebrow
-    f_ey = font(26, "medium")
+    f_ey = font_for(T["eyebrow"], 26, "medium")
     draw_tracked(d, T["eyebrow"].replace("   ", " \u00b7 "),
                  f_ey, W / 2, 1302, (60, 110, 140, 255) if light else (86, 225, 236, 255), tracking=6)
     # Claim-Zeilen
     y = 1370
     line_h = {46: 62, 64: 86, 40: 54, 42: 56, 54: 72, 56: 74, 58: 78, 62: 84}
     for text, style, size, kind in T["claim"]:
-        f = font(size, style)
+        f = font_for(text, size, style)
         tx = d.textlength(text, font=f) / 2
         if kind == "gradient":
             glow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -466,7 +596,7 @@ def build_overlay(title, lang="de", variant="classic", custom=None):
     d.text(((W - d.textlength(cta, font=f_cta)) / 2, by + 12), cta, font=f_cta,
            fill=(255, 253, 246, 255) if not light else (255, 255, 255, 255))
     # Caption
-    f_cap = font(26, "regular")
+    f_cap = font_for(T["caption"], 26, "regular")
     capc = (140, 165, 185, 255) if not light else (70, 88, 108, 255)
     d.text((W / 2 - d.textlength(T["caption"], font=f_cap) / 2, 1776), T["caption"], font=f_cap, fill=capc)
     return V, ov
@@ -682,6 +812,14 @@ def build(prompt, title, out, duration, lang="de", variant="classic", custom=Non
                 grow = 2 + 12 * (0.4 + 0.6 * pr) * (gs / 1.0 if gs > 1 else 1)
                 huec = hue(p["name"] if not p["real"] else p.get("pixel_id", 1))
                 col = hsl_to_rgb(huec, V["px"]["sat"], V["px"]["light"])
+                if p.get("emoji"):
+                    # Emoji-Pixel: runder Glow + Emoji statt Quadrat.
+                    for g, ga in ((44, 0.10), (30, 0.18), (20, 0.30)):
+                        if pr * grow > g * 0.6:
+                            d.ellipse([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
+                                      fill=col + (int(ga * 255 * pr),))
+                    draw_marker(layer, p, x, y, size=46, pr=pr)
+                    continue
                 if pr < 1.0:
                     rr = 8 + 46 * pr
                     alpha = int(220 * (1 - pr))
@@ -743,10 +881,17 @@ def build_poster(title, out, height=1350, lang="de", custom=None):
         huec = hue(p["name"] if not p["real"] else p.get("pixel_id", 1))
         col = hsl_to_rgb(huec, 0.92, 0.55)
         for g, ga in ((44, 0.10), (30, 0.18), (20, 0.30), (14, 0.45)):
-            d.rounded_rectangle([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
-                                radius=g / 2, fill=col + (int(ga * 255),))
-        d.rounded_rectangle([x - 14, y - 14, x + 14, y + 14], radius=3,
-                            fill=col + (255,), outline=hsl_to_rgb(huec, 0.92, 0.82) + (255,), width=3)
+            if p.get("emoji"):
+                d.ellipse([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
+                          fill=col + (int(ga * 255),))
+            else:
+                d.rounded_rectangle([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
+                                    radius=g / 2, fill=col + (int(ga * 255),))
+        if p.get("emoji"):
+            draw_marker(layer, p, x, y, size=46)
+        else:
+            d.rounded_rectangle([x - 14, y - 14, x + 14, y + 14], radius=3,
+                                fill=col + (255,), outline=hsl_to_rgb(huec, 0.92, 0.82) + (255,), width=3)
     mapc = Image.alpha_composite(base.convert("RGBA"), layer)
     canvas = Image.new("RGBA", (PW, height), NAVY)
     canvas.paste(mapc, (0, 0))
@@ -776,7 +921,7 @@ def build_poster(title, out, height=1350, lang="de", custom=None):
     y = 1180
     line_h = {46: 62, 64: 86, 40: 54, 42: 56, 54: 72, 56: 74, 58: 78, 62: 84}
     for text, style, size, kind in claim:
-        f = font(size, style)
+        f = font_for(text, size, style)
         tx = d.textlength(text, font=f) / 2
         if kind == "gradient":
             draw_gradient(canvas, d, text, f, PW / 2, y, (120, 245, 255, 255), (255, 255, 255, 255))
@@ -795,7 +940,7 @@ def build_poster(title, out, height=1350, lang="de", custom=None):
     d.text(((PW - d.textlength(cta, font=f_cta)) / 2, cta_y + 12), cta, font=f_cta,
            fill=(255, 253, 246, 255))
 
-    f_cap = font(26, "regular")
+    f_cap = font_for(caption, 26, "regular")
     cap_y = min(cta_y + 108, height - 40)
     d.text((PW / 2 - d.textlength(caption, font=f_cap) / 2, cap_y), caption, font=f_cap,
            fill=(140, 165, 185, 255))
@@ -938,10 +1083,17 @@ def build_story(out, duration=16.8, scenes=None, cities=None, brand=None, music=
                 huec = hue(p["name"] if not p["real"] else p.get("pixel_id", 1))
                 col = hsl_to_rgb(huec, 0.92, 0.58)
                 for g, ga in ((36, 0.08), (24, 0.16), (14, 0.3), (9, 0.42)):
-                    d.rounded_rectangle([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
-                                        radius=g / 2, fill=col + (int(ga * 255),))
-                d.rounded_rectangle([x - 6, y - 6, x + 6, y + 6], radius=3,
-                                    fill=col + (255,), outline=hsl_to_rgb(huec, 0.92, 0.84) + (255,), width=2)
+                    if p.get("emoji"):
+                        d.ellipse([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
+                                  fill=col + (int(ga * 255),))
+                    else:
+                        d.rounded_rectangle([x - g / 2, y - g / 2, x + g / 2, y + g / 2],
+                                            radius=g / 2, fill=col + (int(ga * 255),))
+                if p.get("emoji"):
+                    draw_marker(layer, p, x, y, size=42)
+                else:
+                    d.rounded_rectangle([x - 6, y - 6, x + 6, y + 6], radius=3,
+                                        fill=col + (255,), outline=hsl_to_rgb(huec, 0.92, 0.84) + (255,), width=2)
             camc = None
             cur = None
             for (s0, s1, kind, payload, tip) in scenes:

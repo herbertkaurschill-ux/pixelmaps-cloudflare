@@ -1635,5 +1635,315 @@
       "lon": 24.9384,
       "city": "Helsinki"
     }
+  },
+  {
+    "id": "emoji-de",
+    "kind": "claim",
+    "lang": "de",
+    "title": "Dein Pixel. Dein Emoji. Für immer.",
+    "eyebrow": "DEIN PIXEL · DEIN EMOJI",
+    "claim": [
+      [
+        "Dein Pixel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Dein EMOJI.",
+        "bold",
+        70,
+        "gradient"
+      ],
+      [
+        "Für immer.",
+        "demi",
+        58,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · ein Emoji, das bleibt",
+    "variant": "neon",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-en",
+    "kind": "claim",
+    "lang": "en",
+    "title": "Your pixel. Your emoji. Forever.",
+    "eyebrow": "YOUR PIXEL · YOUR EMOJI",
+    "claim": [
+      [
+        "Your pixel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Your EMOJI.",
+        "bold",
+        70,
+        "gradient"
+      ],
+      [
+        "Forever.",
+        "demi",
+        58,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · one emoji, yours forever",
+    "variant": "pop",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-es",
+    "kind": "claim",
+    "lang": "es",
+    "title": "Tu píxel. Tu emoji. Para siempre.",
+    "eyebrow": "TU PÍXEL · TU EMOJI",
+    "claim": [
+      [
+        "Tu píxel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Tu EMOJI.",
+        "bold",
+        70,
+        "gradient"
+      ],
+      [
+        "Para siempre.",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · un emoji para siempre",
+    "variant": "classic",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-fr",
+    "kind": "claim",
+    "lang": "fr",
+    "title": "Ton pixel. Ton emoji. Pour toujours.",
+    "eyebrow": "TON PIXEL · TON EMOJI",
+    "claim": [
+      [
+        "Ton pixel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Ton EMOJI.",
+        "bold",
+        70,
+        "gradient"
+      ],
+      [
+        "Pour toujours.",
+        "demi",
+        54,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · un emoji pour toujours",
+    "variant": "paper",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-it",
+    "kind": "claim",
+    "lang": "it",
+    "title": "Il tuo pixel. Il tuo emoji. Per sempre.",
+    "eyebrow": "IL TUO PIXEL · IL TUO EMOJI",
+    "claim": [
+      [
+        "Il tuo pixel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Il tuo EMOJI.",
+        "bold",
+        66,
+        "gradient"
+      ],
+      [
+        "Per sempre.",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · un emoji per sempre",
+    "variant": "neon",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-pt",
+    "kind": "claim",
+    "lang": "pt",
+    "title": "O teu píxel. O teu emoji. Para sempre.",
+    "eyebrow": "O TEU PÍXEL · O TEU EMOJI",
+    "claim": [
+      [
+        "O teu píxel.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "O teu EMOJI.",
+        "bold",
+        66,
+        "gradient"
+      ],
+      [
+        "Para sempre.",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · um emoji para sempre",
+    "variant": "pop",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-tr",
+    "kind": "claim",
+    "lang": "tr",
+    "title": "Pikselin. Emojin. Sonsuza dek.",
+    "eyebrow": "PİKSELİN · EMOJİN",
+    "claim": [
+      [
+        "Pikselin.",
+        "regular",
+        48,
+        "white"
+      ],
+      [
+        "EMOJİN.",
+        "bold",
+        72,
+        "gradient"
+      ],
+      [
+        "Sonsuza dek.",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · sonsuza dek senin",
+    "variant": "classic",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-ru",
+    "kind": "claim",
+    "lang": "ru",
+    "title": "Твой пиксель. Твой эмодзи. Навсегда.",
+    "eyebrow": "ТВОЙ ПИКСЕЛЬ · ТВОЙ ЭМОДЗИ",
+    "claim": [
+      [
+        "Твой пиксель.",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "Твой ЭМОДЗИ.",
+        "bold",
+        64,
+        "gradient"
+      ],
+      [
+        "Навсегда.",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · навсегда твой",
+    "variant": "paper",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-hi",
+    "kind": "claim",
+    "lang": "hi",
+    "title": "तुम्हारा पिक्सेल। तुम्हारा इमोजी। हमेशा के लिए।",
+    "eyebrow": "तुम्हारा पिक्सेल · तुम्हारा इमोजी",
+    "claim": [
+      [
+        "तुम्हारा पिक्सेल।",
+        "regular",
+        46,
+        "white"
+      ],
+      [
+        "तुम्हारा इमोजी।",
+        "bold",
+        58,
+        "gradient"
+      ],
+      [
+        "हमेशा के लिए।",
+        "demi",
+        48,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · हमेशा तुम्हारा",
+    "variant": "neon",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "emoji-zh",
+    "kind": "claim",
+    "lang": "zh",
+    "title": "你的像素，你的表情，永久保留。",
+    "eyebrow": "你的像素 · 你的表情",
+    "claim": [
+      [
+        "你的像素。",
+        "regular",
+        52,
+        "white"
+      ],
+      [
+        "你的表情。",
+        "bold",
+        72,
+        "gradient"
+      ],
+      [
+        "永久保留。",
+        "demi",
+        56,
+        "soft"
+      ]
+    ],
+    "caption": "pixelmaps.org · 永久属于你",
+    "variant": "pop",
+    "duration": 6,
+    "focus": "51.066,6.6285,3.2"
   }
 ]
