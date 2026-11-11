@@ -577,10 +577,12 @@
           if (!Number.isInteger(id) || loadedSoldIds.has(id)) return;
           loadedSoldIds.add(id);
 
+          // Ohne gewaehltes Emoji zeigt der Pixel einen neutralen Standort-Pin.
+          const emoji = p.emoji || '📍';
           const marker = L.marker([Number(p.lat), Number(p.lon)], {
-            icon: makeIcon('sold-pixel', id, p.emoji),
+            icon: makeIcon('sold-pixel', id, emoji),
             // Emoji-Pixel immer ueber den normalen Punkten halten.
-            zIndexOffset: p.emoji ? 1200 : 500
+            zIndexOffset: 1200
           });
 
           const title = p.display_name ? escapeHtml(p.display_name) : 'Gesicherter Pixel';
@@ -591,7 +593,7 @@
 
           marker.bindPopup(
             '<div class="pixel-popup px-1">' +
-              '<div style="font-weight:700;color:#6ee7b7">' + (p.emoji ? p.emoji + '&nbsp;' : '') + title + '</div>' +
+              '<div style="font-weight:700;color:#6ee7b7">' + escapeHtml(emoji) + '&nbsp;' + title + '</div>' +
               '<div style="font-size:11px;color:#94a3b8;margin-top:3px">Pixel #' + id + '</div>' +
               website +
               message +
