@@ -1,76 +1,148 @@
 {
   "scheduled": [
     {
-      "videoId": "c1-proof-en",
+      "videoId": "emoji-tr",
       "platform": "TikTok",
-      "postId": "6ac152b9ad7fd83bc5ffb985",
-      "dueAt": "2026-10-04T15:00:00Z"
+      "postId": "6af43cea658ef0788e220340",
+      "dueAt": "2026-11-11T15:00:00Z"
     },
     {
-      "videoId": "c1-proof-es",
+      "videoId": "emoji-ru",
       "platform": "TikTok",
-      "postId": "6ac152bdad7fd83bc5ffb9fe",
-      "dueAt": "2026-10-05T16:00:00Z"
+      "postId": "6af43ceff41d6d2bbb61e658",
+      "dueAt": "2026-11-12T16:00:00Z"
     },
     {
-      "videoId": "c5-dialog-en",
+      "videoId": "emoji-hi",
       "platform": "TikTok",
-      "postId": "6ac152c2814d657011d27914",
-      "dueAt": "2026-10-06T17:00:00Z"
+      "postId": "6af43cf4db6e84f20bec5e8f",
+      "dueAt": "2026-11-13T17:00:00Z"
     },
     {
-      "videoId": "c5-dialog-tr",
+      "videoId": "emoji-zh",
       "platform": "TikTok",
-      "postId": "6ac152c5814d657011d279ba",
-      "dueAt": "2026-10-07T18:00:00Z"
+      "postId": "6af43cf7658ef0788e220a7e",
+      "dueAt": "2026-11-14T18:00:00Z"
     },
     {
-      "videoId": "c1-proof-en",
+      "videoId": "emoji-de",
+      "platform": "TikTok",
+      "postId": "6af43cfa27d84871c7eb2549",
+      "dueAt": "2026-11-15T15:00:00Z"
+    },
+    {
+      "videoId": "emoji-en",
+      "platform": "TikTok",
+      "postId": "6af43cfbdb6e84f20bec6397",
+      "dueAt": "2026-11-16T16:00:00Z"
+    },
+    {
+      "videoId": "emoji-es",
+      "platform": "TikTok",
+      "postId": "6af43cff658ef0788e221087",
+      "dueAt": "2026-11-17T17:00:00Z"
+    },
+    {
+      "videoId": "emoji-fr",
+      "platform": "TikTok",
+      "postId": "6af43d04db6e84f20bec68e2",
+      "dueAt": "2026-11-18T18:00:00Z"
+    },
+    {
+      "videoId": "emoji-tr",
       "platform": "Instagram",
-      "postId": "6ac152c8aa79e514b9fb592e",
-      "dueAt": "2026-10-04T15:00:00Z"
+      "postId": "6af43d07c05a77e35e9876ad",
+      "dueAt": "2026-11-11T15:00:00Z"
     },
     {
-      "videoId": "c1-proof-es",
+      "videoId": "emoji-ru",
       "platform": "Instagram",
-      "postId": "6ac152c9ad7fd83bc5ffbbe9",
-      "dueAt": "2026-10-05T16:00:00Z"
+      "postId": "6af43d0a09bdcaff02d8d0b2",
+      "dueAt": "2026-11-12T16:00:00Z"
     },
     {
-      "videoId": "c5-dialog-en",
+      "videoId": "emoji-hi",
       "platform": "Instagram",
-      "postId": "6ac152cb7d53b827e0e9df14",
-      "dueAt": "2026-10-06T17:00:00Z"
+      "postId": "6af43d0d09bdcaff02d8d67e",
+      "dueAt": "2026-11-13T17:00:00Z"
     },
     {
-      "videoId": "c5-dialog-tr",
+      "videoId": "emoji-zh",
       "platform": "Instagram",
-      "postId": "6ac152cfaa79e514b9fb59b3",
-      "dueAt": "2026-10-07T18:00:00Z"
+      "postId": "6af43d0ff41d6d2bbb620046",
+      "dueAt": "2026-11-14T18:00:00Z"
     },
     {
-      "videoId": "c1-proof-en",
-      "platform": "YouTubeShorts",
-      "postId": "6ac152d07d53b827e0e9df53",
-      "dueAt": "2026-10-04T15:00:00Z"
+      "videoId": "emoji-de",
+      "platform": "Instagram",
+      "postId": "6af43d1127d84871c7eb36f3",
+      "dueAt": "2026-11-15T15:00:00Z"
     },
     {
-      "videoId": "c1-proof-es",
-      "platform": "YouTubeShorts",
-      "postId": "6ac152d2fec591339483725d",
-      "dueAt": "2026-10-05T16:00:00Z"
+      "videoId": "emoji-en",
+      "platform": "Instagram",
+      "postId": "6af43d1327d84871c7eb3a64",
+      "dueAt": "2026-11-16T16:00:00Z"
     },
     {
-      "videoId": "c5-dialog-en",
-      "platform": "YouTubeShorts",
-      "postId": "6ac152d4814d657011d27e0e",
-      "dueAt": "2026-10-06T17:00:00Z"
+      "videoId": "emoji-es",
+      "platform": "Instagram",
+      "postId": "6af43d1527d84871c7eb3d09",
+      "dueAt": "2026-11-17T17:00:00Z"
     },
     {
-      "videoId": "c5-dialog-tr",
+      "videoId": "emoji-fr",
+      "platform": "Instagram",
+      "postId": "6af43d1627d84871c7eb3e22",
+      "dueAt": "2026-11-18T18:00:00Z"
+    },
+    {
+      "videoId": "emoji-tr",
       "platform": "YouTubeShorts",
-      "postId": "6ac152d73bfd38430fee375d",
-      "dueAt": "2026-10-07T18:00:00Z"
+      "postId": "6af43d18db6e84f20bec7514",
+      "dueAt": "2026-11-11T15:00:00Z"
+    },
+    {
+      "videoId": "emoji-ru",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d1af41d6d2bbb62083f",
+      "dueAt": "2026-11-12T16:00:00Z"
+    },
+    {
+      "videoId": "emoji-hi",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d1c27d84871c7eb3fdb",
+      "dueAt": "2026-11-13T17:00:00Z"
+    },
+    {
+      "videoId": "emoji-zh",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d1df41d6d2bbb620a96",
+      "dueAt": "2026-11-14T18:00:00Z"
+    },
+    {
+      "videoId": "emoji-de",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d1f27d84871c7eb40ed",
+      "dueAt": "2026-11-15T15:00:00Z"
+    },
+    {
+      "videoId": "emoji-en",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d2127d84871c7eb41cd",
+      "dueAt": "2026-11-16T16:00:00Z"
+    },
+    {
+      "videoId": "emoji-es",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d24f41d6d2bbb620e69",
+      "dueAt": "2026-11-17T17:00:00Z"
+    },
+    {
+      "videoId": "emoji-fr",
+      "platform": "YouTubeShorts",
+      "postId": "6af43d26db6e84f20bec7ae5",
+      "dueAt": "2026-11-18T18:00:00Z"
     }
   ]
 }

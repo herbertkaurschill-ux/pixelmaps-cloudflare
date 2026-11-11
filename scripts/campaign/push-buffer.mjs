@@ -167,6 +167,8 @@ const CONCEPT_IDS = (process.env.SELECT || "c1-proof-en,c5-dialog-en")
 
 async function swap() {
   const commit = process.argv.includes("--commit");
+  // START_OFFSET=0 plant ab heute (Standard 1 = ab morgen).
+  const START = Number.isFinite(Number(process.env.START_OFFSET)) ? Number(process.env.START_OFFSET) : 1;
   const rows = await fetchPosts();
   const now = Date.now();
   const sched = rows.filter((r) => r.status === "scheduled");
@@ -177,7 +179,9 @@ async function swap() {
   for (const r of past) console.log(`  BEHALT  ${r.dueAt.slice(0,16)}  ${r.channelId}  ${r.id}`);
   for (const r of future) console.log(`  LOESCH  ${r.dueAt.slice(0,16)}  ${r.channelId}  ${r.id}`);
 
-  const list = VIDEOS.filter((v) => CONCEPT_IDS.includes(v.id));
+  const list = CONCEPT_IDS
+    .map((id) => VIDEOS.find((v) => v.id === id))
+    .filter(Boolean);
   const missing = CONCEPT_IDS.filter((id) => !VIDEOS.some((v) => v.id === id));
   if (missing.length) throw new Error("nicht in videos.json: " + missing.join(", "));
   console.log(`\nNeu einplanen (${list.length} Clips x ${PLATFORMS.length} Kanaele):`);
@@ -211,7 +215,7 @@ async function swap() {
     const cid = CH[platform];
     for (let k = 0; k < list.length; k++) {
       const v = list[k];
-      const day = isoDay(k + 1);
+      const day = isoDay(k + START);
       const hh = 15 + (k % 4);
       const dueAt = `${day}T${String(hh).padStart(2, "0")}:00:00Z`;
       const built = buildPost({ platform, lang: langOf(v.id), date: day, clipTitle: v.title, salt: k });
