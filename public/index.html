@@ -970,6 +970,7 @@
 
     function showPurchaseSuccess(pixelId, certUrl, refCode) {
       currentSharePixelId = pixelId;
+      lastPick = null;
       const titleEl = document.getElementById('sold-title');
       const T2 = T[window.PM_LANG] || T.en;
       if (titleEl) titleEl.textContent = T2.thanksTitle || 'Danke für deinen Pixel! 🌍';
