@@ -525,7 +525,7 @@ async function createCheckout(env, body, request) {
 
   const success = `${env.SITE_URL}/?success=1&session_id={CHECKOUT_SESSION_ID}&pixel=${pixelId}&tok=${purchaseId}`;
   const cancel = `${env.SITE_URL}/?cancelled=1&pixel=${pixelId}`;
-  const locationText = placeName || `Grid ${geo.lat.toFixed(5)}°, ${geo.lon.toFixed(5)}°`;
+  const locationText = placeName || "Weltkarte";
 
   // Rabatt: Gratis-Pixel (100%) hat Vorrang vor dem Werbe-Rabatt (20%).
   let couponId = "";
@@ -535,8 +535,8 @@ async function createCheckout(env, body, request) {
   const params = formEncode({
     mode:"payment",
     "line_items[0][price_data][currency]":price.currency,
-    "line_items[0][price_data][product_data][name]":"PixelMaps — 1 geographic pixel",
-    "line_items[0][price_data][product_data][description]":`Pixel ${pixelId} — ${locationText}`,
+    "line_items[0][price_data][product_data][name]":"PixelMaps – dein Pixel auf der Weltkarte",
+    "line_items[0][price_data][product_data][description]":`Pixel ${pixelId} · ${locationText}`,
     "line_items[0][price_data][unit_amount]":String(price.unit_amount),
     "line_items[0][quantity]":"1",
     ...(couponId ? { "discounts[0][coupon]": couponId } : {}),
@@ -571,7 +571,7 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
-async function sendCertificateEmail(env, {to, displayName, pixelId, placeName, certificateNo, pdf}) {
+async function sendCertificateEmail(env, {to, displayName, pixelId, placeName, certificateNo, pdf, foundingNo }) {
   if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
   const from = env.RESEND_FROM_EMAIL || "PixelMaps <zertifikat@pixelmaps.org>";
   const location = placeName || "your geographic pixel";
@@ -594,7 +594,9 @@ async function sendCertificateEmail(env, {to, displayName, pixelId, placeName, c
           <p>Thank you for your purchase. Your PixelMaps geographic pixel has been successfully registered.</p>
           <p><strong>Pixel:</strong> ${pixelId}<br>
           <strong>Location:</strong> ${escapeHtml(location)}<br>
+          ${foundingNo ? `<strong>Founding pixel:</strong> No. ${foundingNo} of ${FOUNDING_LIMIT}<br>` : ""}
           <strong>Certificate:</strong> ${escapeHtml(certificateNo)}</p>
+          <p>${foundingNo ? `Du gehörst zu den ersten ${FOUNDING_LIMIT} Pixeln dieser Karte. Deine Nummer bleibt dauerhaft mit deinem Pixel verbunden.` : ""}</p>
           <p>Your PixelMaps World Record Certificate is attached as a PDF.</p>
           <p>Best regards,<br>PixelMaps</p>
         </div>`,
@@ -620,6 +622,31 @@ function escapeHtml(value) {
     if (m === '\"') return "&quot;";
     return "&#39;";
   });
+}
+
+// Gruendungspixel: die ersten 1000 echten Kaeufe bekommen eine feste Nummer.
+// Die Nummer wird aus den bezahlten Kaeufen berechnet (kein Schema-Umbau) und
+// zaehlt Test-Kaeufe nicht mit - ausser dem oeffentlich freigegebenen Kauf.
+const FOUNDING_LIMIT = 1000;
+
+async function foundingRank(env, purchaseId, paidAt) {
+  try {
+    if (!paidAt) return 0;
+    const pub = PUBLIC_PIXELS.length
+      ? `pu.pixel_id IN (${PUBLIC_PIXELS.map(n => Number(n)).join(",")})`
+      : "0";
+    const row = await env.DB.prepare(`
+      SELECT COUNT(*) AS n FROM purchases pu
+      WHERE pu.status = 'paid'
+        AND (LOWER(pu.email) NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${pub})
+        AND (pu.paid_at < ? OR (pu.paid_at = ? AND pu.id <= ?))
+    `).bind(...TEST_EMAILS, paidAt, paidAt, purchaseId).first();
+    const n = Number(row?.n || 0);
+    return n > 0 && n <= FOUNDING_LIMIT ? n : 0;
+  } catch (e) {
+    console.log("foundingRank:", e.message);
+    return 0;
+  }
 }
 
 // Schliesst eine bezahlte Checkout-Session ab: Kauf als paid markieren, Pixel
@@ -650,6 +677,15 @@ async function completePaidSession(env, s) {
   if (!wasPaid) {
     await env.DB.prepare("UPDATE purchases SET status='paid',paid_at=CURRENT_TIMESTAMP WHERE id=?").bind(purchaseId).run();
   }
+  // paid_at erneut lesen: bei einem frischen Kauf war das Feld oben noch leer.
+  let paidAt = p.paid_at;
+  if (!paidAt) {
+    try {
+      const fresh = await env.DB.prepare("SELECT paid_at FROM purchases WHERE id=?").bind(purchaseId).first();
+      paidAt = fresh?.paid_at || null;
+    } catch (_) {}
+  }
+  const foundingNo = await foundingRank(env, purchaseId, paidAt);
 
   const geo = idToGeo(pixelId);
   try {
@@ -736,7 +772,8 @@ async function completePaidSession(env, s) {
     lon: geo.lon,
     placeName,
     displayName: p.display_name || "",
-    certificateNo: certNo
+    certificateNo: certNo,
+    foundingNo
   });
 
   // Mailversand ist best effort: ein Resend-Fehler darf den bezahlten Kauf
@@ -750,7 +787,8 @@ async function completePaidSession(env, s) {
         pixelId,
         placeName,
         certificateNo: certNo,
-        pdf
+        pdf,
+        foundingNo
       });
       emailed = true;
     } catch (e) {
@@ -856,7 +894,13 @@ async function router(request, env) {
         WHERE (LOWER(pu.email) NOT IN (${ph}) OR ${PUBLIC_SQL})`
     ).bind(...TEST_EMAILS).first().catch(() => null);
     const sold = Number(r?.sold || 0);
-    return withCors(json({total:TOTAL,sold,remaining:TOTAL-sold}));
+    return withCors(json({
+      total: TOTAL,
+      sold,
+      remaining: TOTAL - sold,
+      founding: Math.min(sold, FOUNDING_LIMIT),
+      founding_limit: FOUNDING_LIMIT
+    }));
   }
 
   // Laender-Rennen: gesicherte Pixel je Land (ohne Eigen-Tests).
@@ -1211,13 +1255,18 @@ async function router(request, env) {
         CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.website ELSE NULL END AS website,
         CASE WHEN pu.consent_given = 1 AND (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN p.message ELSE NULL END AS message,
         p.emoji AS emoji,
-        CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN c.certificate_no ELSE NULL END AS certificate_no
+        CASE WHEN (pu.email NOT IN (${TEST_EMAILS.map(() => "?").join(",")}) OR ${PUBLIC_SQL}) THEN c.certificate_no ELSE NULL END AS certificate_no,
+        pu.id AS purchase_id, pu.paid_at AS paid_at
       FROM pixels p
       JOIN purchases pu ON pu.id = p.purchase_id
       LEFT JOIN certificates c ON c.pixel_id = p.pixel_id
       WHERE p.pixel_id = ?
     `).bind(...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, ...TEST_EMAILS, id).first();
     if (p) p.emoji = emojiFor(p.pixel_id, p.emoji);
+    let founding_no = 0;
+    if (p && p.purchase_id) founding_no = await foundingRank(env, p.purchase_id, p.paid_at);
+    // Interne Felder nie ausliefern: purchase_id ist der Urkunden-Token.
+    if (p) { delete p.purchase_id; delete p.paid_at; }
     const geo = idToGeo(id);
     // Optionaler Adress-Label aus der Suche; kommt nur von Nominatim (/api/search).
     // Plausibilitaet: Label nur uebernehmen, wenn es zur realen Lage passt.
@@ -1227,7 +1276,7 @@ async function router(request, env) {
       const v = await verifyLabel(env, geo.lat, geo.lon, label);
       place_name = v.place;
     }
-    return withCors(json({pixel:p || null, geo, place_name}));
+    return withCors(json({pixel:p || null, geo, place_name, founding_no, founding_limit: FOUNDING_LIMIT}));
   }
 
   if (url.pathname === "/api/recent") {
@@ -1338,6 +1387,22 @@ async function router(request, env) {
 
   if (url.pathname === "/api/health")
     return withCors(json({ok:true}));
+
+  // Kurzlink fuer Social-Bios: /go/<quelle> leitet mit UTM auf die Startseite.
+  // Damit ist der Link kurz genug fuer TikTok/Instagram und die Herkunft
+  // landet in den Event-Zaehlern (src_<quelle>).
+  if (url.pathname === "/go" || url.pathname.startsWith("/go/")) {
+    const rawSrc = url.pathname.split("/")[2] || url.searchParams.get("s") || "bio";
+    const src = (rawSrc.toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 24)) || "bio";
+    const target = new URL("/", siteBase(env));
+    target.searchParams.set("utm_source", src);
+    target.searchParams.set("utm_medium", "social");
+    target.searchParams.set("utm_campaign", url.searchParams.get("c") || "founding");
+    return new Response(null, {
+      status: 302,
+      headers: { location: target.toString(), "cache-control": "no-store" }
+    });
+  }
 
   const shareMatch = url.pathname.match(/^\/p\/(\d{1,12})$/);
   if (shareMatch) {
@@ -1677,7 +1742,7 @@ function buildCityMeta(env, slug, display) {
 }
 
 
-async function createCertificatePdf({ pixelId, lat, lon, placeName, displayName, certificateNo }) {
+async function createCertificatePdf({ pixelId, lat, lon, placeName, displayName, certificateNo, foundingNo }) {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([842, 595]);
 
@@ -1763,12 +1828,22 @@ async function createCertificatePdf({ pixelId, lat, lon, placeName, displayName,
   page.drawText("PIXELMAPS", {
     x: 46, y: 520, size: 30, font: bold, color: white
   });
-  page.drawText("WORLD RECORD CERTIFICATE", {
+  page.drawText(foundingNo ? "FOUNDING PIXEL CERTIFICATE" : "PIXEL OWNERSHIP CERTIFICATE", {
     x: 47, y: 486, size: 18, font: monoBold, color: green
   });
   page.drawText("ONE PIXEL. ONE PLACE. YOUR WORLD.", {
     x: 48, y: 463, size: 8.5, font: mono, color: muted
   });
+
+  // Gruendungspixel-Nummer: nur die ersten 1000 echten Kaeufe.
+  if (foundingNo) {
+    page.drawText("FOUNDING PIXEL", {
+      x: 600, y: 524, size: 8.5, font: monoBold, color: muted
+    });
+    page.drawText("NO. " + String(foundingNo) + " / " + String(FOUNDING_LIMIT), {
+      x: 600, y: 496, size: 22, font: bold, color: green
+    });
+  }
 
   // Certificate identity strip.
   page.drawRectangle({
@@ -1927,4 +2002,21 @@ async function createCertificatePdf({ pixelId, lat, lon, placeName, displayName,
 
   return await pdfDoc.save();
 }
-export default { fetch: router };
+// Cron (alle 30 Minuten): raeumt offene Checkouts auf und schickt die
+// Abbrecher-Mail. Der Endpoint selbst bleibt admin-geschuetzt; der Cron ruft
+// ihn intern mit dem Schluessel auf, damit die Logik nur an einer Stelle steht.
+async function cronRun(event, env, ctx) {
+  try {
+    const req = new Request("https://pixelmaps.org/api/followup/scan?limit=5", {
+      method: "POST",
+      headers: { "x-admin-key": String(env.MODERATION_KEY || "") }
+    });
+    const res = await router(req, env);
+    if (res) console.log("cron followup:", res.status);
+  } catch (e) {
+    console.log("cron:", e.message);
+  }
+}
+
+export default { fetch: router, scheduled: cronRun };
+

@@ -20,6 +20,10 @@ database_id = "37056eb9-7704-4054-a97a-4b12fb39450a"
 SITE_URL = "https://pixelmaps.org"
 BASE_PRICE_CENTS = "100"
 
+# Alle 30 Minuten: Abbrecher-Mails fuer offene Checkouts (30 Min bis 48 h alt).
+[triggers]
+crons = ["*/30 * * * *"]
+
 # Optional: taeglich aktualisierte Wechselkurse, z.B.:
 # FX_RATES = '{"usd":1.09,"gbp":0.86}'
 
