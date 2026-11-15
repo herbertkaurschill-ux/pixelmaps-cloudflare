@@ -616,7 +616,7 @@ async function sendCertificateEmail(env, {to, displayName, pixelId, placeName, c
           <strong>Location:</strong> ${escapeHtml(location)}<br>
           ${foundingNo ? `<strong>Founding pixel:</strong> No. ${foundingNo} of ${FOUNDING_LIMIT}<br>` : ""}
           <strong>Certificate:</strong> ${escapeHtml(certificateNo)}</p>
-          <p>${foundingNo ? `Du gehörst zu den ersten ${FOUNDING_LIMIT} Pixeln dieser Karte. Deine Nummer bleibt dauerhaft mit deinem Pixel verbunden.` : ""}</p>
+          <p>${foundingNo ? `You are one of the first ${FOUNDING_LIMIT} pixels on this map. Your number stays linked to your pixel forever.` : ""}</p>
           <p>Your PixelMaps World Record Certificate is attached as a PDF.</p>
           <p>Best regards,<br>PixelMaps</p>
         </div>`,
