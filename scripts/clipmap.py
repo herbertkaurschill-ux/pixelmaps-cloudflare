@@ -775,23 +775,50 @@ def build(prompt, title, out, duration, lang="de", variant="classic", custom=Non
         fd = os.path.join(tmp, "frames")
         os.makedirs(fd)
         vignette = build_vignette() if "vignette" in V["fx"] else None
+        # Overlay-Pop-in: erste ~0,4 s leicht groesser und transparent einblenden.
+        ov_pop = []
+        POP_STEPS = 8
+        for k in range(POP_STEPS):
+            a = k / (POP_STEPS - 1)
+            if a >= 1.0:
+                ov_pop.append(ov)
+                continue
+            sc = 1.0 + 0.05 * (1.0 - a)
+            im = ov.resize((int(round(W * sc)), int(round(H * sc))), Image.LANCZOS)
+            lx = max(0, (im.width - W) // 2)
+            ty = max(0, (im.height - H) // 2)
+            im = im.crop((lx, ty, lx + W, ty + H))
+            r, g, b, al = im.split()
+            al = al.point(lambda x: int(x * a))
+            ov_pop.append(Image.merge("RGBA", (r, g, b, al)))
+        POP_T = 0.42
         px = py = None
         if focus:
             px, py = ll_from_latlon(focus[0], focus[1])
             zoom_end = focus[2] if len(focus) > 2 else 2.4
         for i in range(frames):
             tnow = i / FPS
-            u = smoothstep(min(1.0, tnow / duration))
+            # Punch: kurzer Rein-Zoom-Stoss, der exakt auf 1.0 zurueckkommt
+            # (Startbild = Endbild -> nahtloser Loop).
+            punch = 1.0 + 0.09 * math.sin(math.pi * min(1.0, tnow / 0.34))
             if focus:
-                crop = int(W / (1.0 + (zoom_end - 1.0) * u))
+                # Schnell loszoomen, dann auf die Stadt einschwenken.
+                e = 1.0 - (1.0 - min(1.0, tnow / (duration * 0.8))) ** 2.6
+                crop = int(W / ((1.0 + (zoom_end - 1.0) * e) * punch))
+                crop = max(2, min(W, crop))
                 ex0 = max(0, min(W - crop, int(px - crop / 2)))
                 ey0 = max(0, min(W - crop, int(py - crop / 2)))
-                x0 = int(ex0 * u)
-                y0 = int(ey0 * u)
+                # Start mittig (Punch), dann zum Ziel schwenken.
+                cx = (W - crop) // 2
+                x0 = int(ex0 * e + cx * (1.0 - e))
+                y0 = int(ey0 * e + cx * (1.0 - e))
             else:
-                crop = int(W / (1.0 + 0.06 * u))
-                x0 = 0
-                y0 = int((W - crop) / 2) + int(8 * u)
+                # Atmen: startet und endet bei 0 -> nahtloser Loop.
+                breath = 0.5 - 0.5 * math.cos(2 * math.pi * tnow / max(duration, 0.001))
+                crop = int(W / ((1.0 + 0.05 * breath) * punch))
+                crop = max(2, min(W, crop))
+                x0 = (W - crop) // 2
+                y0 = (W - crop) // 2
             scale = W / crop
             frame = base.crop((x0, y0, x0 + crop, y0 + crop)).resize((W, W), Image.LANCZOS)
             layer = Image.new("RGBA", (W, W), (0, 0, 0, 0))
@@ -839,7 +866,8 @@ def build(prompt, title, out, duration, lang="de", variant="classic", custom=Non
             full = draw_fx(full, i, V) if V["fx"] else full
             if vignette:
                 full = Image.alpha_composite(full, vignette)
-            full = Image.alpha_composite(full, ov)
+            full = Image.alpha_composite(
+                full, ov_pop[min(len(ov_pop) - 1, int(tnow / POP_T * len(ov_pop)))])
             full.convert("RGB").save(os.path.join(fd, f"f{i:04d}.png"))
         # Video
         ff = os.environ.get("FFMPEG") or "ffmpeg"

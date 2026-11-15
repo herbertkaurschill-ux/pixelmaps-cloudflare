@@ -129,7 +129,7 @@
     },
     "scenes": [
       [
-        0.0,
+        0,
         2.2,
         "text",
         [
@@ -140,7 +140,7 @@
       ],
       [
         2.2,
-        5.0,
+        5,
         "text",
         [
           "Dein Pixel erscheint",
@@ -149,7 +149,7 @@
         44
       ],
       [
-        5.0,
+        5,
         7.6,
         "text",
         [
@@ -871,7 +871,7 @@
     },
     "scenes": [
       [
-        0.0,
+        0,
         2.2,
         "text",
         [
@@ -1057,7 +1057,7 @@
     },
     "scenes": [
       [
-        0.0,
+        0,
         2.2,
         "text",
         [
@@ -1068,7 +1068,7 @@
       ],
       [
         2.2,
-        5.0,
+        5,
         "text",
         [
           "Your pixel appears",
@@ -1077,7 +1077,7 @@
         42
       ],
       [
-        5.0,
+        5,
         7.6,
         "text",
         [
@@ -1178,7 +1178,7 @@
     },
     "scenes": [
       [
-        0.0,
+        0,
         2.2,
         "text",
         [
@@ -1229,7 +1229,7 @@
       ],
       [
         10.6,
-        13.0,
+        13,
         "text",
         [
           "Sichere deinen Pixel",
@@ -1238,7 +1238,7 @@
         44
       ],
       [
-        13.0,
+        13,
         15.5,
         "brand",
         [],
@@ -1252,7 +1252,7 @@
     "concept": "c1-proof",
     "lang": "de",
     "title": "Dein Platz auf der Weltkarte – für immer für 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1265,7 +1265,7 @@
     "concept": "c1-proof",
     "lang": "en",
     "title": "Claim Your Spot on the World Map – Forever for €1",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1278,7 +1278,7 @@
     "concept": "c1-proof",
     "lang": "es",
     "title": "Tu lugar en el mapa del mundo – para siempre por 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1291,7 +1291,7 @@
     "concept": "c1-proof",
     "lang": "fr",
     "title": "Ton emplacement sur la carte du monde – pour toujours 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1304,7 +1304,7 @@
     "concept": "c1-proof",
     "lang": "it",
     "title": "Il tuo posto sulla mappa del mondo – per sempre a 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1317,7 +1317,7 @@
     "concept": "c1-proof",
     "lang": "pt",
     "title": "O teu lugar no mapa do mundo – para sempre por 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1330,7 +1330,7 @@
     "concept": "c1-proof",
     "lang": "tr",
     "title": "Dünya haritasındaki yerin – sonsuza dek 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1434,7 +1434,7 @@
     "concept": "c6-split",
     "lang": "de",
     "title": "Leerer Punkt wird dein Pixel – für 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1447,7 +1447,7 @@
     "concept": "c6-split",
     "lang": "en",
     "title": "Empty Spot Becomes Your Pixel – for €1",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1460,7 +1460,7 @@
     "concept": "c6-split",
     "lang": "es",
     "title": "Punto vacío → tu píxel por 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1473,7 +1473,7 @@
     "concept": "c6-split",
     "lang": "fr",
     "title": "Point vide → ton pixel pour 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1486,7 +1486,7 @@
     "concept": "c6-split",
     "lang": "it",
     "title": "Punto vuoto → il tuo pixel a 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1499,7 +1499,7 @@
     "concept": "c6-split",
     "lang": "pt",
     "title": "Ponto vazio → o teu pixel por 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1512,7 +1512,7 @@
     "concept": "c6-split",
     "lang": "tr",
     "title": "Boş nokta → pikselin, 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1525,7 +1525,7 @@
     "concept": "c6-split",
     "lang": "ru",
     "title": "Пустое место → твой пиксель за 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1538,7 +1538,7 @@
     "concept": "c6-split",
     "lang": "hi",
     "title": "खाली जगह बने तुम्हारा पिक्सेल – 1 € में",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1551,7 +1551,7 @@
     "concept": "c6-split",
     "lang": "zh",
     "title": "空白点变成你的像素 – 只要 1 欧元",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1603,7 +1603,7 @@
     "concept": "c5-dialog",
     "lang": "ru",
     "title": "Твой пиксель на карте мира — за 1 €",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1616,7 +1616,7 @@
     "concept": "c5-dialog",
     "lang": "hi",
     "title": "विश्व नक्शे पर तुम्हारा पिक्सेल — 1 € में",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1629,7 +1629,7 @@
     "concept": "c5-dialog",
     "lang": "zh",
     "title": "你的世界地图像素 — 只要 1 欧元",
-    "duration": 6.0,
+    "duration": 6,
     "place": {
       "lat": 60.1699,
       "lon": 24.9384,
@@ -1945,5 +1945,30 @@
     "variant": "pop",
     "duration": 6,
     "focus": "51.066,6.6285,3.2"
+  },
+  {
+    "id": "country-ru",
+    "kind": "concept",
+    "title": "Твой город на карте мира — навсегда"
+  },
+  {
+    "id": "country-tr",
+    "kind": "concept",
+    "title": "Şehrin dünya haritasında — sonsuza kadar"
+  },
+  {
+    "id": "country-it",
+    "kind": "concept",
+    "title": "La tua città sulla mappa del mondo — per sempre"
+  },
+  {
+    "id": "country-es",
+    "kind": "concept",
+    "title": "Tu ciudad en el mapa del mundo — para siempre"
+  },
+  {
+    "id": "country-zh",
+    "kind": "concept",
+    "title": "你的城市，永久留在世界地图上"
   }
 ]
