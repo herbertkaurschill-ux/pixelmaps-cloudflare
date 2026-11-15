@@ -340,9 +340,56 @@ const EMOJI_TITLES = {
   zh: ["你的像素，你的表情——永远留在世界地图上"],
 };
 
+// "Welches Land sammelt die meisten Pixel?" – der staerkste internationale
+// Hook: Jedes Land hat einen eigenen Grund, jetzt den ersten Pixel zu setzen.
+// Diese Hooks laufen in derselben Rotation wie Emoji- und Produkt-Hooks.
+const COUNTRY_HOOKS = {
+  de: [
+    "Welches Land sammelt die meisten Pixel? Sei der erste aus deinem.",
+    "Noch kein Pixel aus deinem Land? Dann mach den Anfang.",
+  ],
+  en: [
+    "Which country collects the most pixels? Be the first from yours.",
+    "No pixel from your country yet? Start it.",
+  ],
+  es: [
+    "¿Qué país reúne más píxeles? Sé el primero del tuyo.",
+    "¿Tu país aún no tiene píxel? Empieza tú.",
+  ],
+  fr: [
+    "Quel pays collectionne le plus de pixels ? Sois le premier du tien.",
+    "Aucun pixel de ton pays ? Lance-le.",
+  ],
+  it: [
+    "Quale paese raccoglie più pixel? Sii il primo del tuo.",
+    "Il tuo paese non ha ancora pixel? Inizia tu.",
+  ],
+  pt: [
+    "Que país junta mais píxeis? Sê o primeiro do teu.",
+    "O teu país ainda não tem píxel? Começa tu.",
+  ],
+  tr: [
+    "Hangi ülke en çok piksel topluyor? Ülkenden ilk sen ol.",
+    "Ülkenden henüz piksel yok mu? İlk adımı sen at.",
+  ],
+  ru: [
+    "Какая страна соберёт больше пикселей? Стань первым из своей.",
+    "Из твоей страны ещё нет пикселя? Начни.",
+  ],
+  hi: [
+    "कौन सा देश सबसे ज़्यादा पिक्सल जमा करेगा? अपने देश से पहले बनो।",
+    "तुम्हारे देश से अभी पिक्सल नहीं? शुरुआत तुम करो।",
+  ],
+  zh: [
+    "哪个国家收集的像素最多？成为你国家的第一个。",
+    "你的国家还没有像素？从你开始。",
+  ],
+};
+
 for (const lang of Object.keys(COPY)) {
   if (SLOGAN[lang]) COPY[lang].slogan = SLOGAN[lang];
   if (EMOJI_HOOKS[lang]) COPY[lang].hooks.unshift(...EMOJI_HOOKS[lang]);
+  if (COUNTRY_HOOKS[lang]) COPY[lang].hooks.unshift(...COUNTRY_HOOKS[lang]);
   if (EMOJI_TITLES[lang]) COPY[lang].titles.unshift(...EMOJI_TITLES[lang]);
 }
 

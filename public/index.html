@@ -325,6 +325,13 @@
           <div class="text-slate-500 text-[10px] leading-snug" data-i18n="foundingNote">Die ersten 1.000 echten Käufe erhalten eine feste Nummer auf ihrer Urkunde.</div>
         </div>
 
+        <div id="country-hook" class="hidden bg-emerald-500/10 border border-emerald-500/30 p-2.5 md:p-3 rounded-xl text-[11px] md:text-xs space-y-1">
+          <div class="flex justify-between items-center gap-2">
+            <span id="country-hook-title" class="font-bold text-emerald-300 truncate"></span>
+          </div>
+          <div id="country-hook-text" class="text-slate-300 leading-snug"></div>
+        </div>
+
         <div id="country-race" class="hidden bg-slate-950/60 p-2.5 md:p-3 rounded-xl border border-slate-800 text-[11px] md:text-xs space-y-1.5">
           <div class="flex justify-between items-center">
             <span id="race-title" class="text-slate-500">Länder-Rennen</span>
@@ -1329,7 +1336,7 @@
         emailLabel:'E-Mail Adresse (für Zertifikat) *',
         websiteLabel:'Webseite (optional)',
         messageLabel:'Message auf deinem Pixel (optional)',
-        messageHelp:'Wird beim Pixel angezeigt.', emojiLabel:'Pixel-Emoji (optional)', recentSold:'wurde gesichert', milestoneLabel:'Nächster Meilenstein', foundingLabel:'Gründungspixel', foundingNote:'Die ersten 1.000 echten Käufe erhalten eine feste Nummer auf ihrer Urkunde.', foundingBadge:'Gründungspixel Nr. {n} / {limit}', remainingLabel:'noch frei',
+        messageHelp:'Wird beim Pixel angezeigt.', emojiLabel:'Pixel-Emoji (optional)', recentSold:'wurde gesichert', milestoneLabel:'Nächster Meilenstein', priceTagLocal:'Gründungspixel für die ersten 1.000 · nur {price}', foundingLabel:'Gründungspixel', foundingNote:'Die ersten 1.000 echten Käufe erhalten eine feste Nummer auf ihrer Urkunde.', foundingBadge:'Gründungspixel Nr. {n} / {limit}', remainingLabel:'noch frei',
         stripeButton:'Weiter zu Stripe · 1,00 €',
         soldTitle:'Pixel bereits gesichert',
         viewCert:'Urkunde ansehen', shareLabel:'Teile deinen Pixel:', copyLink:'🔗 Link',
@@ -1372,7 +1379,7 @@
         emailLabel:'Email address (for certificate) *',
         websiteLabel:'Website (optional)',
         messageLabel:'Message on your pixel (optional)',
-        messageHelp:'Shown with your pixel.', emojiLabel:'Pixel emoji (optional)', recentSold:'was secured', milestoneLabel:'Next milestone', foundingLabel:'Founding pixel', foundingNote:'The first 1,000 real purchases get a permanent number on their certificate.', foundingBadge:'Founding pixel no. {n} / {limit}', remainingLabel:'remaining',
+        messageHelp:'Shown with your pixel.', emojiLabel:'Pixel emoji (optional)', recentSold:'was secured', milestoneLabel:'Next milestone', priceTagLocal:'Founding pixel for the first 1,000 · just {price}', foundingLabel:'Founding pixel', foundingNote:'The first 1,000 real purchases get a permanent number on their certificate.', foundingBadge:'Founding pixel no. {n} / {limit}', remainingLabel:'remaining',
         stripeButton:'Continue to Stripe · €1.00',
         soldTitle:'Pixel already secured',
         viewCert:'View certificate', shareLabel:'Share your pixel:', copyLink:'🔗 Link',
@@ -1398,7 +1405,7 @@
         footerHint:'Cliquez sur un point de la carte', modalTitle:'Sécuriser votre pixel',
         chosenPlace:'Lieu choisi', nameLabel:'Votre nom / nom affiché *', emailLabel:'Adresse e-mail (pour le certificat) *',
         websiteLabel:'Site web (facultatif)', messageLabel:'Message sur votre pixel (facultatif)',
-        messageHelp:'Affiché avec votre pixel.', emojiLabel:'Emoji du pixel (facultatif)', recentSold:'a été sécurisé', milestoneLabel:'Prochain jalon', foundingLabel:'Pixel fondateur', foundingNote:'Les 1 000 premiers achats réels reçoivent un numéro de fondateur permanent sur leur certificat.', foundingBadge:'Pixel fondateur n° {n} / {limit}', remainingLabel:'restants', stripeButton:'Continuer vers Stripe · 1,00 €',
+        messageHelp:'Affiché avec votre pixel.', emojiLabel:'Emoji du pixel (facultatif)', recentSold:'a été sécurisé', milestoneLabel:'Prochain jalon', priceTagLocal:'Pixel fondateur pour les 1 000 premiers · seulement {price}', foundingLabel:'Pixel fondateur', foundingNote:'Les 1 000 premiers achats réels reçoivent un numéro de fondateur permanent sur leur certificat.', foundingBadge:'Pixel fondateur n° {n} / {limit}', remainingLabel:'restants', stripeButton:'Continuer vers Stripe · 1,00 €',
         soldTitle:'Pixel déjà sécurisé', otherPlace:'Choisir un autre lieu',
         saved:'sécurisé', available:'disponible', check:'Vérification du pixel #',
         place:'Lieu : ', placeUnknown:'Lieu introuvable', loading:'Recherche du lieu ...', selectedPlace:'Lieu sélectionné'
@@ -1413,7 +1420,7 @@
         footerHint:'Haz clic en un punto del mapa', modalTitle:'Asegura tu píxel',
         chosenPlace:'Lugar elegido', nameLabel:'Tu nombre / nombre mostrado *',
         emailLabel:'Correo electrónico (para el certificado) *', websiteLabel:'Sitio web (opcional)',
-        messageLabel:'Mensaje en tu píxel (opcional)', messageHelp:'Se muestra con tu píxel.', emojiLabel:'Emoji del píxel (opcional)', recentSold:'fue asegurado', milestoneLabel:'Próximo hito', foundingLabel:'Píxel fundador', foundingNote:'Las primeras 1.000 compras reales reciben un número de fundador permanente en su certificado.', foundingBadge:'Píxel fundador n.º {n} / {limit}', remainingLabel:'disponibles',
+        messageLabel:'Mensaje en tu píxel (opcional)', messageHelp:'Se muestra con tu píxel.', emojiLabel:'Emoji del píxel (opcional)', recentSold:'fue asegurado', milestoneLabel:'Próximo hito', priceTagLocal:'Píxel fundador para los primeros 1.000 · solo {price}', foundingLabel:'Píxel fundador', foundingNote:'Las primeras 1.000 compras reales reciben un número de fundador permanente en su certificado.', foundingBadge:'Píxel fundador n.º {n} / {limit}', remainingLabel:'disponibles',
         stripeButton:'Continuar a Stripe · 1,00 €', soldTitle:'Píxel ya asegurado',
         otherPlace:'Elegir otro lugar', saved:'asegurado', available:'disponible',
         check:'Comprobando píxel #', place:'Lugar: ', placeUnknown:'Lugar no encontrado',
@@ -1429,7 +1436,7 @@
         footerHint:'Clicca su un punto della mappa', modalTitle:'Assicura il tuo pixel',
         chosenPlace:'Luogo scelto', nameLabel:'Nome / nome visualizzato *',
         emailLabel:'Indirizzo e-mail (per il certificato) *', websiteLabel:'Sito web (facoltativo)',
-        messageLabel:'Messaggio sul tuo pixel (facoltativo)', messageHelp:'Mostrato con il tuo pixel.', emojiLabel:'Emoji del pixel (facoltativo)', recentSold:'è stato assicurato', milestoneLabel:'Prossimo traguardo', foundingLabel:'Pixel fondatore', foundingNote:'I primi 1.000 acquisti reali ricevono un numero di fondatore permanente sul certificato.', foundingBadge:'Pixel fondatore n. {n} / {limit}', remainingLabel:'rimanenti',
+        messageLabel:'Messaggio sul tuo pixel (facoltativo)', messageHelp:'Mostrato con il tuo pixel.', emojiLabel:'Emoji del pixel (facoltativo)', recentSold:'è stato assicurato', milestoneLabel:'Prossimo traguardo', priceTagLocal:'Pixel fondatore per i primi 1.000 · solo {price}', foundingLabel:'Pixel fondatore', foundingNote:'I primi 1.000 acquisti reali ricevono un numero di fondatore permanente sul certificato.', foundingBadge:'Pixel fondatore n. {n} / {limit}', remainingLabel:'rimanenti',
         stripeButton:'Continua con Stripe · 1,00 €', soldTitle:'Pixel già assicurato',
         otherPlace:'Scegli un altro luogo', saved:'assicurato', available:'disponibile',
         check:'Controllo pixel #', place:'Luogo: ', placeUnknown:'Luogo non trovato',
@@ -1445,7 +1452,7 @@
         footerHint:'Klik op een punt op de wereldkaart', modalTitle:'Beveilig je pixel',
         chosenPlace:'Gekozen plaats', nameLabel:'Je naam / weergavenaam *',
         emailLabel:'E-mailadres (voor certificaat) *', websiteLabel:'Website (optioneel)',
-        messageLabel:'Bericht op je pixel (optioneel)', messageHelp:'Wordt bij je pixel weergegeven.', emojiLabel:'Pixel-emoji (optioneel)', recentSold:'is beveiligd', milestoneLabel:'Volgende mijlpaal', foundingLabel:'Oprichterspixel', foundingNote:'De eerste 1.000 echte aankopen krijgen een permanent oprichtersnummer op hun certificaat.', foundingBadge:'Oprichterspixel nr. {n} / {limit}', remainingLabel:'resterend',
+        messageLabel:'Bericht op je pixel (optioneel)', messageHelp:'Wordt bij je pixel weergegeven.', emojiLabel:'Pixel-emoji (optioneel)', recentSold:'is beveiligd', milestoneLabel:'Volgende mijlpaal', priceTagLocal:'Oprichterspixel voor de eerste 1.000 · slechts {price}', foundingLabel:'Oprichterspixel', foundingNote:'De eerste 1.000 echte aankopen krijgen een permanent oprichtersnummer op hun certificaat.', foundingBadge:'Oprichterspixel nr. {n} / {limit}', remainingLabel:'resterend',
         stripeButton:'Doorgaan naar Stripe · €1,00', soldTitle:'Pixel al beveiligd',
         otherPlace:'Andere plaats kiezen', saved:'beveiligd', available:'beschikbaar',
         check:'Pixel controleren #', place:'Plaats: ', placeUnknown:'Plaats niet gevonden',
@@ -1461,7 +1468,7 @@
         footerHint:'Kliknij punkt na mapie świata', modalTitle:'Zabezpiecz swój piksel',
         chosenPlace:'Wybrane miejsce', nameLabel:'Imię i nazwisko / nazwa wyświetlana *',
         emailLabel:'Adres e-mail (do certyfikatu) *', websiteLabel:'Strona internetowa (opcjonalnie)',
-        messageLabel:'Wiadomość na pikselu (opcjonalnie)', messageHelp:'Będzie wyświetlana przy pikselu.', emojiLabel:'Emoji piksela (opcjonalnie)', recentSold:'został zabezpieczony', milestoneLabel:'Następny kamień milowy', foundingLabel:'Piksel założycielski', foundingNote:'Pierwsze 1 000 prawdziwych zakupów otrzymuje stały numer założyciela na certyfikacie.', foundingBadge:'Piksel założycielski nr {n} / {limit}', remainingLabel:'pozostało',
+        messageLabel:'Wiadomość na pikselu (opcjonalnie)', messageHelp:'Będzie wyświetlana przy pikselu.', emojiLabel:'Emoji piksela (opcjonalnie)', recentSold:'został zabezpieczony', milestoneLabel:'Następny kamień milowy', priceTagLocal:'Piksel założycielski dla pierwszych 1 000 · tylko {price}', foundingLabel:'Piksel założycielski', foundingNote:'Pierwsze 1 000 prawdziwych zakupów otrzymuje stały numer założyciela na certyfikacie.', foundingBadge:'Piksel założycielski nr {n} / {limit}', remainingLabel:'pozostało',
         stripeButton:'Przejdź do Stripe · 1,00 €', soldTitle:'Piksel już zabezpieczony',
         otherPlace:'Wybierz inne miejsce', saved:'zabezpieczony', available:'dostępny',
         check:'Sprawdzanie piksela #', place:'Miejsce: ', placeUnknown:'Nie znaleziono miejsca',
@@ -1477,7 +1484,7 @@
         footerHint:'Clique em um ponto do mapa', modalTitle:'Garanta seu pixel',
         chosenPlace:'Local escolhido', nameLabel:'Seu nome / nome exibido *',
         emailLabel:'E-mail (para o certificado) *', websiteLabel:'Site (opcional)',
-        messageLabel:'Mensagem no seu pixel (opcional)', messageHelp:'Será exibida com seu pixel.', emojiLabel:'Emoji do pixel (opcional)', recentSold:'foi garantido', milestoneLabel:'Próximo marco', foundingLabel:'Pixel fundador', foundingNote:'As primeiras 1.000 compras reais recebem um número de fundador permanente no certificado.', foundingBadge:'Pixel fundador n.º {n} / {limit}', remainingLabel:'restantes',
+        messageLabel:'Mensagem no seu pixel (opcional)', messageHelp:'Será exibida com seu pixel.', emojiLabel:'Emoji do pixel (opcional)', recentSold:'foi garantido', milestoneLabel:'Próximo marco', priceTagLocal:'Pixel fundador para os primeiros 1.000 · apenas {price}', foundingLabel:'Pixel fundador', foundingNote:'As primeiras 1.000 compras reais recebem um número de fundador permanente no certificado.', foundingBadge:'Pixel fundador n.º {n} / {limit}', remainingLabel:'restantes',
         stripeButton:'Continuar para Stripe · 1,00 €', soldTitle:'Pixel já garantido',
         otherPlace:'Escolher outro local', saved:'garantido', available:'disponível',
         check:'Verificando pixel #', place:'Local: ', placeUnknown:'Local não encontrado',
@@ -1499,7 +1506,7 @@
         emailLabel:'电子邮箱地址（用于证书）*',
         websiteLabel:'网站（可选）',
         messageLabel:'像素上的消息（可选）',
-        messageHelp:'会显示在你的像素旁。', emojiLabel:'像素表情符号（可选）', recentSold:'已被锁定', milestoneLabel:'下一个里程碑', foundingLabel:'创始像素', foundingNote:'前 1,000 个真实购买将在证书上获得永久创始编号。', foundingBadge:'创始像素 {n} / {limit}', remainingLabel:'剩余',
+        messageHelp:'会显示在你的像素旁。', emojiLabel:'像素表情符号（可选）', recentSold:'已被锁定', milestoneLabel:'下一个里程碑', priceTagLocal:'前 1,000 个创始像素 · 仅 {price}', foundingLabel:'创始像素', foundingNote:'前 1,000 个真实购买将在证书上获得永久创始编号。', foundingBadge:'创始像素 {n} / {limit}', remainingLabel:'剩余',
         stripeButton:'前往 Stripe 支付 · 1,00 €',
         soldTitle:'像素已被锁定',
         otherPlace:'选择其他位置',
@@ -1537,7 +1544,7 @@
         emailLabel:'ईमेल पता (प्रमाणपत्र के लिए) *',
         websiteLabel:'वेबसाइट (वैकल्पिक)',
         messageLabel:'आपके पिक्सल पर संदेश (वैकल्पिक)',
-        messageHelp:'आपके पिक्सल के साथ दिखाया जाता है।', emojiLabel:'पिक्सल इमोजी (वैकल्पिक)', recentSold:'सुरक्षित हुआ', milestoneLabel:'अगला माइलस्टोन', foundingLabel:'संस्थापक पिक्सल', foundingNote:'पहले 1.000 वास्तविक खरीद को प्रमाणपत्र पर स्थायी संस्थापक संख्या मिलती है।', foundingBadge:'संस्थापक पिक्सल {n} / {limit}', remainingLabel:'शेष',
+        messageHelp:'आपके पिक्सल के साथ दिखाया जाता है।', emojiLabel:'पिक्सल इमोजी (वैकल्पिक)', recentSold:'सुरक्षित हुआ', milestoneLabel:'अगला माइलस्टोन', priceTagLocal:'पहले 1.000 संस्थापक पिक्सल · सिर्फ {price}', foundingLabel:'संस्थापक पिक्सल', foundingNote:'पहले 1.000 वास्तविक खरीद को प्रमाणपत्र पर स्थायी संस्थापक संख्या मिलती है।', foundingBadge:'संस्थापक पिक्सल {n} / {limit}', remainingLabel:'शेष',
         stripeButton:'Stripe पर जाएँ · 1,00 €',
         soldTitle:'पिक्सल पहले से सुरक्षित',
         otherPlace:'दूसरा स्थान चुनें',
@@ -1577,7 +1584,7 @@
         websiteLabel:'Web sitesi (isteğe bağlı)',
         messageLabel:'Pikselindeki mesaj (isteğe bağlı)',
         messageHelp:'Pikselinle birlikte gösterilir.', emojiLabel:'Piksel emojisi (isteğe bağlı)', recentSold:'güvence altına alındı',
-        milestoneLabel:'Sonraki hedef', foundingLabel:'Kurucu piksel', foundingNote:'İlk 1.000 gerçek alım sertifikasında kalıcı bir kurucu numarası alır.', foundingBadge:'Kurucu piksel no. {n} / {limit}', remainingLabel:'kaldı',
+        milestoneLabel:'Sonraki hedef', priceTagLocal:'İlk 1.000 için kurucu piksel · sadece {price}', foundingLabel:'Kurucu piksel', foundingNote:'İlk 1.000 gerçek alım sertifikasında kalıcı bir kurucu numarası alır.', foundingBadge:'Kurucu piksel no. {n} / {limit}', remainingLabel:'kaldı',
         stripeButton:'Stripe’a devam et · 1,00 €',
         soldTitle:'Piksel zaten güvence altında',
         viewCert:'Sertifikayı gör', shareLabel:'Pikselini paylaş:', copyLink:'🔗 Bağlantı',
@@ -1619,7 +1626,7 @@
         websiteLabel:'Сайт (необязательно)',
         messageLabel:'Сообщение на пикселе (необязательно)',
         messageHelp:'Показывается рядом с пикселем.', emojiLabel:'Эмодзи пикселя (необязательно)', recentSold:'закреплён',
-        milestoneLabel:'Следующая цель', foundingLabel:'Пиксель-основатель', foundingNote:'Первые 1 000 настоящих покупок получают постоянный номер основателя в сертификате.', foundingBadge:'Пиксель-основатель № {n} / {limit}', remainingLabel:'осталось',
+        milestoneLabel:'Следующая цель', priceTagLocal:'Пиксель-основатель для первых 1 000 · всего {price}', foundingLabel:'Пиксель-основатель', foundingNote:'Первые 1 000 настоящих покупок получают постоянный номер основателя в сертификате.', foundingBadge:'Пиксель-основатель № {n} / {limit}', remainingLabel:'осталось',
         stripeButton:'Перейти к Stripe · 1,00 €',
         soldTitle:'Пиксель уже закреплён',
         viewCert:'Посмотреть сертификат', shareLabel:'Поделись пикселем:', copyLink:'🔗 Ссылка',
@@ -1662,6 +1669,7 @@ function applyLanguage(lang) {
       }
       renderPrice();
       applyLegalLinks(lang);
+      renderCountryHook();
     }
 
     const LEGAL_LINKS = {
@@ -1757,6 +1765,44 @@ function applyLanguage(lang) {
       zh:{ title:'国家竞赛', empty:'还没有国家上榜——成为第一个！🌍', pixel:'像素', pixels:'像素' }
     };
 
+    // "Dein Land"-Hook: zeigt dem Besucher, wie viele Pixel aus seinem Land
+    // schon gesichert sind. Bei 0 wird daraus ein echter Startvorteil.
+    const COUNTRY_HOOK_I18N = {
+      de:{ has:'{n} Pixel aus deinem Land sind schon gesichert. Hol dir deinen.', first:'Noch kein Pixel aus deinem Land – sei die/der Erste!' },
+      en:{ has:'{n} pixels from your country are already secured. Claim yours.', first:'No pixel from your country yet – be the first!' },
+      fr:{ has:'{n} pixels de ton pays sont déjà sécurisés. Prends le tien.', first:'Aucun pixel de ton pays pour l’instant – sois le premier !' },
+      es:{ has:'{n} píxeles de tu país ya están asegurados. Consigue el tuyo.', first:'Aún no hay píxeles de tu país: ¡sé el primero!' },
+      it:{ has:'{n} pixel del tuo paese sono già assicurati. Prendi il tuo.', first:'Nessun pixel dal tuo paese – sii il primo!' },
+      nl:{ has:'{n} pixels uit jouw land zijn al beveiligd. Pak de jouwe.', first:'Nog geen pixel uit jouw land – wees de eerste!' },
+      pl:{ has:'{n} pikseli z Twojego kraju jest już zabezpieczonych. Weź swój.', first:'Jeszcze żadnego piksela z Twojego kraju – bądź pierwszy!' },
+      pt:{ has:'{n} píxeis do teu país já estão garantidos. Garante o teu.', first:'Ainda nenhum píxel do teu país – sê o primeiro!' },
+      zh:{ has:'你的国家已有 {n} 个像素被锁定。锁定你的。', first:'你的国家还没有像素——成为第一个！' },
+      hi:{ has:'तुम्हारे देश से {n} पिक्सल सुरक्षित हैं। अपना भी लो।', first:'तुम्हारे देश से अभी कोई पिक्सल नहीं – पहले बनो!' },
+      tr:{ has:'Ülkenden {n} piksel zaten alındı. Sen de al.', first:'Ülkenden henüz piksel yok – ilk sen ol!' },
+      ru:{ has:'Из твоей страны уже {n} пикселей. Забери свой.', first:'Из твоей страны пока нет пикселей — будь первым!' }
+    };
+    let countryHookData = null;
+
+    function renderCountryHook() {
+      const el = document.getElementById('country-hook');
+      if (!el) return;
+      const d = countryHookData;
+      if (!d || !/^[A-Z]{2}$/.test(d.cc)) { el.classList.add('hidden'); return; }
+      const lang = window.PM_LANG || 'en';
+      const t = COUNTRY_HOOK_I18N[lang] || COUNTRY_HOOK_I18N.en;
+      let name = d.cc;
+      try {
+        name = new Intl.DisplayNames([lang], { type: 'region' }).of(d.cc) || d.cc;
+      } catch (_) {}
+      const title = document.getElementById('country-hook-title');
+      const text = document.getElementById('country-hook-text');
+      if (title) title.textContent = ccFlag(d.cc) + ' ' + name;
+      if (text) text.textContent = d.n > 0
+        ? t.has.replace('{n}', Number(d.n).toLocaleString('de-DE'))
+        : t.first;
+      el.classList.remove('hidden');
+    }
+
     function ccFlag(cc) {
       if (!cc || String(cc).length !== 2) return '🌐';
       try { return String.fromCodePoint(...[...String(cc).toUpperCase()].map(c => 127397 + c.charCodeAt(0))); }
@@ -1776,7 +1822,15 @@ function applyLanguage(lang) {
         const r = await fetch('/api/leaderboard', { cache: 'no-store' });
         if (!r.ok) return;
         const d = await r.json();
-        const rows = (d.countries || []).slice(0, 5);
+        const allCountries = (Array.isArray(d.countries) ? d.countries : []).map(c => ({
+          cc: String(c.cc || c.country || '').toUpperCase(),
+          n: Number(c.n != null ? c.n : c.count)
+        }));
+        const cc = String(window.PM_CC || '').toUpperCase();
+        const hit = allCountries.find(c => c.cc === cc);
+        countryHookData = /^[A-Z]{2}$/.test(cc) ? { cc, n: Number((hit && hit.n) || 0) } : null;
+        renderCountryHook();
+        const rows = allCountries.slice(0, 5);
         box.classList.remove('hidden');
         if (!rows.length) {
           if (totalEl) totalEl.textContent = '';
@@ -1789,11 +1843,11 @@ function applyLanguage(lang) {
         if (empty) empty.classList.add('hidden');
         if (list) {
           list.innerHTML = rows.map((c, idx) => {
-            const flag = ccFlag(c.country);
-            const name = (c.country || '??');
+            const flag = ccFlag(c.cc);
+            const name = (c.cc || '??');
             return '<div class="flex justify-between items-center gap-2">'
               + '<span class="truncate">' + (idx + 1) + '. ' + flag + ' <span class="text-slate-300">' + name + '</span></span>'
-              + '<span class="font-mono text-emerald-400">' + Number(c.count || 0).toLocaleString('de-DE') + '</span></div>';
+              + '<span class="font-mono text-emerald-400">' + Number(c.n || 0).toLocaleString('de-DE') + '</span></div>';
           }).join('');
         }
       } catch (_) {}
@@ -1829,6 +1883,12 @@ function applyLanguage(lang) {
             if (cbase.length > 1) cta.textContent = cbase[0] + ' · ' + p.display;
           }
         }
+        // Preis-Pille in der Landessprache/Landeswaehrung statt hart "1 €".
+        const pill = document.querySelector('[data-i18n="priceTag"]');
+        if (pill && !free) {
+          const tpl = t.priceTagLocal || T.en.priceTagLocal;
+          if (tpl) pill.textContent = tpl.replace('{price}', p.display);
+        }
       }
     }
 
@@ -1843,14 +1903,15 @@ function applyLanguage(lang) {
     }
 
     async function detectCountryLanguage() {
-      const saved = localStorage.getItem('pixelmaps-language');
-      if (saved && LANGS[saved]) return saved;
-
+      // Wichtig: das Land IMMER ermitteln, auch fuer Wiederkehrer. Sonst
+      // bekommen internationale Besucher mit gespeicherter Sprache den
+      // EUR-Preis statt ihrer Landeswaehrung.
+      let mapped = '';
       try {
         const r = await fetch('/cdn-cgi/trace', { cache: 'no-store' });
         const text = await r.text();
         const m = text.match(/^loc=([A-Z]{2})$/m);
-        const cc = m ? m[1] : '';
+        cc = m ? m[1] : '';
         window.PM_CC = cc;
         const countryMap = {
           // Deutsch
@@ -1883,8 +1944,13 @@ function applyLanguage(lang) {
           // Hindi
           IN:'hi', NP:'hi', LK:'hi', BD:'hi'
         };
-        if (countryMap[cc]) return countryMap[cc];
+        if (countryMap[cc]) mapped = countryMap[cc];
       } catch (_) {}
+
+      // Gespeicherte Sprachwahl respektieren, aber erst nach der Landeserkennung.
+      const saved = localStorage.getItem('pixelmaps-language');
+      if (saved && LANGS[saved]) return saved;
+      if (mapped) return mapped;
 
       const browser = (navigator.language || 'en').slice(0,2).toLowerCase();
       return LANGS[browser] ? browser : 'en';

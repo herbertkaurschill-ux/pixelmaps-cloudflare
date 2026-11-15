@@ -1462,6 +1462,7 @@ async function router(request, env) {
       out = out.replace(/<meta property="og:url" content="[^"]*">/, '<meta property="og:url" content="' + meta.url + '">');
       out = out.replace(/<meta name="twitter:title" content="[^"]*">/, '<meta name="twitter:title" content="' + meta.titleEsc + '">');
       out = out.replace(/<meta name="twitter:description" content="[^"]*">/, '<meta name="twitter:description" content="' + meta.descEsc + '">');
+      out = out.replace(/<html lang="[^"]*"/, '<html lang="' + meta.lang + '"');
       const cityScript = '<script>window.PM_CITY = ' + JSON.stringify(display) + '; window.PM_CITY_SLUG = ' + JSON.stringify(slug) + ';</script>';
       out = out.replace("</head>", cityScript + "</head>");
       return new Response(out, {
@@ -1732,13 +1733,51 @@ function buildOgTags(base, id, name, emoji, sold) {
 }
 
 
+// SEO-Stadtseiten: Metadaten in der Sprache der Stadt, damit Google auch
+// internationale Longtail-Suchen ("pixel kaufen paris", "comprar pixel madrid",
+// "istanbul piksel") bedienen kann. Der Slug bleibt sprachneutral.
+const CITY_LANG = {
+  berlin:'de', munich:'de', hamburg:'de', vienna:'de',
+  paris:'fr',
+  london:'en', 'new-york':'en', singapore:'en', dubai:'en', tokyo:'en', mumbai:'en', delhi:'en',
+  madrid:'es', barcelona:'es',
+  rome:'it',
+  amsterdam:'nl',
+  'sao-paulo':'pt',
+  moscow:'ru',
+  istanbul:'tr',
+  shanghai:'zh'
+};
+const CITY_DISPLAY = {
+  munich:{ de:'München' }, vienna:{ de:'Wien' }, rome:{ it:'Roma' },
+  'sao-paulo':{ pt:'São Paulo' }, moscow:{ ru:'Москва' }, istanbul:{ tr:'İstanbul' },
+  shanghai:{ zh:'上海' }
+};
+const CITY_META_I18N = {
+  de:{ title:'Pixel in {city} kaufen · PixelMaps', desc:'Sichere jetzt deinen Pixel in {city} auf der PixelMaps-Weltkarte – schon ab 1 €, inklusive Zertifikat als PDF.' },
+  en:{ title:'Buy a pixel in {city} · PixelMaps', desc:'Claim your own pixel in {city} on the PixelMaps world map – from €1, including a PDF certificate.' },
+  fr:{ title:'Acheter un pixel à {city} · PixelMaps', desc:'Réserve ton pixel à {city} sur la carte du monde PixelMaps – à partir de 1 €, certificat PDF inclus.' },
+  es:{ title:'Comprar un píxel en {city} · PixelMaps', desc:'Asegura tu píxel en {city} en el mapa del mundo de PixelMaps – desde 1 €, con certificado en PDF.' },
+  it:{ title:'Comprare un pixel a {city} · PixelMaps', desc:'Assicurati il tuo pixel a {city} sulla mappa del mondo PixelMaps – da 1 €, certificato PDF incluso.' },
+  nl:{ title:'Een pixel kopen in {city} · PixelMaps', desc:'Beveilig je pixel in {city} op de PixelMaps-wereldkaart – vanaf €1, inclusief PDF-certificaat.' },
+  pl:{ title:'Kup piksel w {city} · PixelMaps', desc:'Zabezpiecz swój piksel w {city} na mapie świata PixelMaps – już od 1 €, z certyfikatem PDF.' },
+  pt:{ title:'Comprar um píxel em {city} · PixelMaps', desc:'Garante o teu píxel em {city} no mapa do mundo PixelMaps – desde 1 €, com certificado em PDF.' },
+  ru:{ title:'{city}: купить пиксель · PixelMaps', desc:'Закрепи свой пиксель в {city} на карте мира PixelMaps — от 1 €, сертификат в PDF.' },
+  tr:{ title:'{city} için piksel satın al · PixelMaps', desc:'PixelMaps dünya haritasında {city} için pikselini al – 1 €’dan başlayan fiyatlarla, PDF sertifikalı.' },
+  zh:{ title:'购买{city}的像素 · PixelMaps', desc:'在 PixelMaps 世界地图上锁定 {city} 的像素——1 欧元起，含 PDF 证书。' },
+  hi:{ title:'{city} में पिक्सल खरीदें · PixelMaps', desc:'PixelMaps विश्व मानचित्र पर {city} में अपना पिक्सल सुरक्षित करें — 1 € से, PDF सर्टिफिकेट सहित।' }
+};
+
 function buildCityMeta(env, slug, display) {
   const e = (x) => String(x ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
   const base = String(env.SITE_URL || "https://pixelmaps.org").replace(/\/+$/, "");
-  const title = "Pixel in " + display + " kaufen · PixelMaps – Weltkarte aus 1 Milliarde Pixeln";
-  const desc  = "Sichere jetzt deinen eigenen Pixel in " + display + " auf der PixelMaps-Weltkarte aus einer Milliarde geografischer Pixeln – für 1 €, inklusive Zertifikat.";
+  const lang = CITY_LANG[slug] || "de";
+  const city = (CITY_DISPLAY[slug] && CITY_DISPLAY[slug][lang]) || display;
+  const t = CITY_META_I18N[lang] || CITY_META_I18N.en;
+  const title = t.title.replace(/\{city\}/g, city);
+  const desc  = t.desc.replace(/\{city\}/g, city);
   const url   = base + "/pixel-" + slug;
-  return { title, desc, url, titleEsc: e(title), descEsc: e(desc) };
+  return { title, desc, url, lang, titleEsc: e(title), descEsc: e(desc) };
 }
 
 
