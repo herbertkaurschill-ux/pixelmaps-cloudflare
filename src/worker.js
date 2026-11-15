@@ -532,12 +532,12 @@ async function createCheckout(env, body, request) {
   if (useCredit) couponId = await ensureCoupon(env, "pm-freepixel", 100);
   else if (validRef) couponId = await ensureCoupon(env, "pm-ref20", 20);
 
-  const params = formEncode({
+  const bodyFor = (currency, amount) => formEncode({
     mode:"payment",
-    "line_items[0][price_data][currency]":price.currency,
+    "line_items[0][price_data][currency]":currency,
     "line_items[0][price_data][product_data][name]":"PixelMaps – dein Pixel auf der Weltkarte",
     "line_items[0][price_data][product_data][description]":`Pixel ${pixelId} · ${locationText}`,
-    "line_items[0][price_data][unit_amount]":String(price.unit_amount),
+    "line_items[0][price_data][unit_amount]":String(amount),
     "line_items[0][quantity]":"1",
     ...(couponId ? { "discounts[0][coupon]": couponId } : {}),
     success_url:success,
@@ -552,14 +552,34 @@ async function createCheckout(env, body, request) {
     "metadata[place_name]":placeName
   });
 
-  const r = await stripeFetch(env,"checkout/sessions",{method:"POST",body:params});
-  const data = await r.json();
+  let usedCurrency = price.currency;
+  let usedAmount = price.unit_amount;
+  let r = await stripeFetch(env,"checkout/sessions",{method:"POST",body:bodyFor(usedCurrency, usedAmount)});
+  let data = await r.json();
+  if (!r.ok) {
+    // Nicht jede Landeswaehrung ist im Stripe-Konto freigeschaltet (z. B. RUB).
+    // Statt den Besucher mit einem Fehler zu verlieren, in EUR zum gleichen
+    // PPP-Preis abrechnen und die Bestellung passend korrigieren.
+    const eurAmount = Math.max(50, Math.round(price.base_cents));
+    console.log("checkout currency fallback:", usedCurrency, data.error?.message || "");
+    const r2 = await stripeFetch(env,"checkout/sessions",{method:"POST",body:bodyFor("eur", eurAmount)});
+    const data2 = await r2.json();
+    if (r2.ok) {
+      usedCurrency = "eur"; usedAmount = eurAmount; r = r2; data = data2;
+      try {
+        await env.DB.prepare("UPDATE purchases SET currency=?, amount_minor=? WHERE id=?")
+          .bind("eur", eurAmount, purchaseId).run();
+      } catch (_) {}
+    } else {
+      data = data2;
+    }
+  }
   if (!r.ok) throw new Error(data.error?.message || "Stripe error");
 
   await env.DB.prepare("UPDATE purchases SET stripe_session_id=? WHERE id=?")
     .bind(data.id,purchaseId).run();
 
-  return {url:data.url, pixel_id:pixelId, place_name:placeName, currency:price.currency, unit_amount:price.unit_amount, token:purchaseId, used_credit:useCredit, discount:couponId || null};
+  return {url:data.url, pixel_id:pixelId, place_name:placeName, currency:usedCurrency, unit_amount:usedAmount, token:purchaseId, used_credit:useCredit, discount:couponId || null};
 }
 
 function bytesToBase64(bytes) {
@@ -1463,7 +1483,11 @@ async function router(request, env) {
       out = out.replace(/<meta name="twitter:title" content="[^"]*">/, '<meta name="twitter:title" content="' + meta.titleEsc + '">');
       out = out.replace(/<meta name="twitter:description" content="[^"]*">/, '<meta name="twitter:description" content="' + meta.descEsc + '">');
       out = out.replace(/<html lang="[^"]*"/, '<html lang="' + meta.lang + '"');
-      const cityScript = '<script>window.PM_CITY = ' + JSON.stringify(display) + '; window.PM_CITY_SLUG = ' + JSON.stringify(slug) + ';</script>';
+      const coords = CITY_COORDS[slug];
+      const cityScript = '<script>window.PM_CITY = ' + JSON.stringify(display)
+        + '; window.PM_CITY_SLUG = ' + JSON.stringify(slug)
+        + (coords ? '; window.PM_CITY_LAT = ' + coords[0] + '; window.PM_CITY_LON = ' + coords[1] + ';' : ';')
+        + '</script>';
       out = out.replace("</head>", cityScript + "</head>");
       return new Response(out, {
         status: 200,
@@ -1752,6 +1776,18 @@ const CITY_DISPLAY = {
   munich:{ de:'München' }, vienna:{ de:'Wien' }, rome:{ it:'Roma' },
   'sao-paulo':{ pt:'São Paulo' }, moscow:{ ru:'Москва' }, istanbul:{ tr:'İstanbul' },
   shanghai:{ zh:'上海' }
+};
+// Stadtmittelpunkte fuer die Kartenpositionierung: Wer ueber eine
+// Longtail-Suche ("pixel paris kaufen") landet, soll sofort Paris sehen
+// und nicht die Weltkarte – sonst springt der CTA ins Leere.
+const CITY_COORDS = {
+  berlin:[52.5200,13.4050], paris:[48.8566,2.3522], london:[51.5074,-0.1278],
+  madrid:[40.4168,-3.7038], rome:[41.9028,12.4964], 'new-york':[40.7128,-74.0060],
+  tokyo:[35.6762,139.6503], mumbai:[19.0760,72.8777], delhi:[28.6139,77.2090],
+  shanghai:[31.2304,121.4737], 'sao-paulo':[-23.5505,-46.6333], moscow:[55.7558,37.6173],
+  amsterdam:[52.3676,4.9041], barcelona:[41.3874,2.1686], singapore:[1.3521,103.8198],
+  dubai:[25.2048,55.2708], istanbul:[41.0082,28.9784], munich:[48.1351,11.5820],
+  hamburg:[53.5511,9.9937], vienna:[48.2082,16.3738]
 };
 const CITY_META_I18N = {
   de:{ title:'Pixel in {city} kaufen · PixelMaps', desc:'Sichere jetzt deinen Pixel in {city} auf der PixelMaps-Weltkarte – schon ab 1 €, inklusive Zertifikat als PDF.' },

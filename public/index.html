@@ -681,7 +681,8 @@
 
     map.on('moveend', loadSoldPixels);
 
-    async function selectAddress(lat, lon, label) {
+    async function selectAddress(lat, lon, label, opts) {
+      const preselect = !!(opts && opts.preselect);
       let lbl = label || '';
       if (!lbl && lastSearch &&
           Math.abs(lat - lastSearch.lat) < 0.01 && Math.abs(lon - lastSearch.lon) < 0.02) {
@@ -731,14 +732,23 @@
 
           setSharePixelId(pixelId);
           setFoundingBadge(data.founding_no, data.founding_limit);
-          document.getElementById('sold-modal').classList.remove('hidden');
-          return;
+          if (!preselect) document.getElementById('sold-modal').classList.remove('hidden');
+          return 'sold';
         }
 
         // Freie Stelle merken: der CTA kann dann direkt den Checkout oeffnen.
         lastPick = { pixelId, lat, lon, place: place || '' };
         document.getElementById('selected-info').textContent = 'Pixel #' + pixelId + ' · ' + (T[window.PM_LANG || 'en']?.available || 'verfügbar');
+        if (preselect) {
+          // Von einer Stadtseite: Pixel vormerken, aber keinen Checkout auf-
+          // draengen. Ein Klick auf den CTA oeffnet dann direkt das Formular.
+          const cbase2 = (T[window.PM_LANG || 'en']?.cta || 'Sichern').split('·')[0].trim();
+          document.getElementById('cta-btn-text').textContent =
+            cbase2 + (window.PM_PRICE && window.PM_PRICE.display ? ' · ' + window.PM_PRICE.display : '');
+          return 'free';
+        }
         openModal(pixelId, lat, lon, place);
+        return 'free';
       } catch (err) {
         console.error(err);
         document.getElementById('selected-info').textContent = 'Pixel #' + pixelId;
@@ -1182,6 +1192,25 @@
       } catch (_) {}
     }
 
+    // Laender-Mittelpunkte fuer den CTA: Ein Besucher aus Istanbul soll die
+    // Tuerkei sehen, nicht Deutschland. Grobe Zentren reichen, danach sucht
+    // er ohnehin seine Strasse.
+    const COUNTRY_CENTER = {
+      DE:[51.16,10.45], AT:[47.60,14.10], CH:[46.80,8.20], TR:[39.00,35.20],
+      IN:[22.00,79.00], BR:[-14.20,-51.90], RU:[55.75,37.62], MX:[23.60,-102.50],
+      NG:[9.10,8.70], ES:[40.40,-3.70], FR:[46.60,2.40], IT:[41.90,12.50],
+      NL:[52.10,5.30], PL:[51.90,19.10], PT:[39.40,-8.20], CN:[35.90,104.20],
+      GB:[54.00,-2.00], US:[39.80,-98.60], CA:[56.10,-106.30], AU:[-25.30,133.80],
+      JP:[36.20,138.30], KR:[35.90,127.80], ID:[-0.80,113.90], PH:[12.90,121.80],
+      VN:[14.10,108.30], TH:[15.90,101.00], EG:[26.80,30.80], ZA:[-30.60,22.90],
+      SA:[23.90,45.10], AE:[23.40,53.80], AR:[-38.40,-63.60], CL:[-35.70,-71.50],
+      CO:[4.60,-74.10], PE:[-9.20,-75.00], MA:[31.80,-7.10], DZ:[28.00,1.70],
+      TN:[33.90,9.50], KE:[-0.20,37.90], GH:[7.90,-1.00], PK:[30.40,69.30],
+      BD:[23.70,90.40], IR:[32.40,53.70], IQ:[33.20,43.70], UA:[48.40,31.20],
+      RO:[45.90,25.00], GR:[39.10,21.80], SE:[62.20,17.60], NO:[60.50,8.50],
+      DK:[56.00,10.00], FI:[61.90,25.70], CZ:[49.80,15.50], HU:[47.20,19.50]
+    };
+
     function focusForPurchase() {
       trackEvent('cta_click');
       // Schon eine freie Stelle gewaehlt? Dann direkt den Checkout oeffnen,
@@ -1199,7 +1228,15 @@
         input.focus();
         input.select();
       }
-      map.setView([51.1657, 10.4515], 4, { animate: true });
+      // International: niemals nach Deutschland springen. Erst die Stadt
+      // der Landingpage, dann das Land des Besuchers, sonst die Weltkarte.
+      if (window.PM_CITY_LAT != null) {
+        map.flyTo([window.PM_CITY_LAT, window.PM_CITY_LON], 13, { animate: true, duration: 1 });
+      } else if (COUNTRY_CENTER[window.PM_CC]) {
+        map.flyTo(COUNTRY_CENTER[window.PM_CC], 5, { animate: true, duration: 1 });
+      } else {
+        map.flyTo([20, 10], 3, { animate: true, duration: 1 });
+      }
     }
 
     const CHECKOUT_EMOJIS = ["🐠","🐙","🦈","🐬","🐋","🦀","🐊","🐼","🦊","🐸","🐝","🦋","🌵","🌴","🍀","🌸","🌊","⛰️","🏝️","🏔️","🎄","⛵","🚀","⭐","🔥","💎","🎯","⚽","🎲","🎧","🎵","❤️","🤙","😎"];
@@ -2051,24 +2088,40 @@ function applyLanguage(lang) {
       });
     }
 
-    // SEO-Stadtseiten (/pixel-<slug>): Kontext im Panel anzeigen.
-    function showCityHint() {
+    // SEO-Stadtseiten (/pixel-<slug>): Karte auf die Stadt zoomen und einen
+    // freien Pixel vormerken, damit der CTA ohne Suchen direkt zum Checkout
+    // fuehrt. Ist der Stadtmittelpunkt schon weg, wird leicht versetzt gesucht.
+    const CITY_HINT_I18N = {
+      de:'Pixel in', en:'Pixel in', fr:'Pixel à', es:'Píxel en', it:'Pixel a',
+      nl:'Pixel in', pl:'Piksel w', pt:'Píxel em', zh:'像素位于', hi:'पिक्सल —', tr:'Piksel:', ru:'Пиксель в'
+    };
+
+    async function initCityContext() {
       if (!window.PM_CITY) return;
-      if (document.getElementById('city-hint')) return;
       const el = document.createElement('div');
       el.id = 'city-hint';
       el.className = 'px-3 pt-2 text-[10px] md:text-xs text-slate-400';
-      el.innerHTML = '<span class="text-slate-500">Pixel in</span> <span class="text-emerald-300 font-semibold">'
-        + String(window.PM_CITY) + '</span> · sichern';
+      const label = CITY_HINT_I18N[window.PM_LANG] || CITY_HINT_I18N.en;
+      el.innerHTML = '<span class="text-slate-500">' + label + '</span> <span class="text-emerald-300 font-semibold">'
+        + String(window.PM_CITY).replace(/[<>&"]/g, '') + '</span>';
       const panel = document.getElementById('side-panel');
       if (panel && panel.firstChild) panel.insertBefore(el, panel.firstChild.nextSibling);
       else if (panel) panel.appendChild(el);
+
+      if (window.PM_CITY_LAT == null) return;
+      const lat = Number(window.PM_CITY_LAT), lon = Number(window.PM_CITY_LON);
+      map.setView([lat, lon], 13, { animate: false });
+      // Mittelpunkt zuerst, dann kleine Versaetze (~200 m), falls belegt.
+      const offs = [[0,0],[0.002,0.002],[-0.002,-0.002],[0.004,-0.004],[-0.004,0.004]];
+      for (const [dy,dx] of offs) {
+        const res = await selectAddress(lat + dy, lon + dx, window.PM_CITY, { preselect: true });
+        if (res === 'free') return;
+      }
     }
 
     detectCountryLanguage().then(lang => {
       applyLanguage(lang);
-      refreshPrice();
-      showCityHint();
+      refreshPrice().then(initCityContext);
       loadLeaderboard();
       if (window.PM_OWN_REF) loadRefCredits();
     });
