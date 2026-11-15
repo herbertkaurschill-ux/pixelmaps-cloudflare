@@ -54,7 +54,11 @@ function langOfLine(line) {
   return "";
 }
 
-const Q = `query($o:OrganizationId!,$f:PostsFiltersInput!){posts(input:{organizationId:$o,filter:$f,sort:[{field:dueAt,direction:asc}]}){edges{node{id channelId status dueAt text}}}}`;
+const Q = `query($o:OrganizationId!,$f:PostsFiltersInput!){posts(input:{organizationId:$o,filter:$f,sort:[{field:dueAt,direction:asc}]}){edges{node{id channelId status dueAt text assets{type source}
+ metadata{__typename
+   ... on InstagramPostMetadata{type shouldShareToFeed firstComment link isAiGenerated}
+   ... on YoutubePostMetadata{title privacy madeForKids notifySubscribers embeddable license isAiGenerated category{categoryId}}
+ }}}}}`;
 const EDIT = `mutation($i:EditPostInput!){ editPost(input:$i){ __typename } }`;
 
 async function gql(query, variables) {
@@ -85,9 +89,41 @@ async function gql(query, variables) {
         if (lines[0].trim() === FIRST[lang]) { skipped++; continue; }
         lines[0] = FIRST[lang];
         const text = lines.join("\n");
+        // Buffer verlangt beim Bearbeiten die Medien erneut (sonst
+        // "TikTok posts require at least one image or video").
+        const assets = (n.assets || []).map(a => {
+          const url = a.source;
+          if (!url) return null;
+          if (a.type === "video") return { video: { url } };
+          if (a.type === "image") return { image: { url } };
+          return null;
+        }).filter(Boolean);
+        const input = { id: n.id, text };
+        if (assets.length) input.assets = assets;
+        // Buffer verlangt beim Bearbeiten auch die Kanal-Metadaten erneut.
+        // YouTube-Titel ist der Suchbegriff -> auch auf den Laender-Hook setzen.
+        const m = n.metadata || {};
+        if (m.__typename === "InstagramPostMetadata") {
+          input.metadata = { instagram: {
+            type: m.type, shouldShareToFeed: !!m.shouldShareToFeed, isAiGenerated: !!m.isAiGenerated,
+            ...(m.firstComment ? { firstComment: m.firstComment } : {}),
+            ...(m.link ? { link: m.link } : {})
+          } };
+        } else if (m.__typename === "YoutubePostMetadata") {
+          const title = (FIRST[lang] + " #Shorts").slice(0, 100);
+          input.metadata = { youtube: {
+            title,
+            categoryId: m.category?.categoryId || "22",
+            privacy: m.privacy, madeForKids: !!m.madeForKids, notifySubscribers: !!m.notifySubscribers,
+            embeddable: !!m.embeddable, license: m.license, isAiGenerated: !!m.isAiGenerated
+          } };
+        }
         if (!APPLY) { console.log("DRY   " + platform + " " + day + " " + lang + " | " + FIRST[lang]); changed++; continue; }
-        const r = await gql(EDIT, { i: { id: n.id, text } });
-        if (r.errors) { console.log("FAIL  " + platform + " " + day + " " + JSON.stringify(r.errors)); continue; }
+        const r = await gql(EDIT, { i: input });
+        if (r.errors || r.data?.editPost?.__typename !== "PostActionSuccess") {
+          console.log("FAIL  " + platform + " " + day + " " + JSON.stringify(r.errors || r.data));
+          continue;
+        }
         backup[n.id] = { platform, day, text: n.text };
         console.log("EDIT  " + platform + " " + day + " " + lang + " | " + FIRST[lang]);
         changed++;
